@@ -2,6 +2,12 @@
 
 # --- CONFIG ---
 
+# Default Provider as "wttr" or "open-meteo"
+DEFAULT_PROVIDER="wttr"
+
+# Provider's wind_mode between "bft", "knots" or "kmh"
+DEFAULT_WIND="bft"
+
 # How many FUTURE days to show in the tooltip? (Open-Meteo only. wttr.in max is 2)
 FORECAST_DAYS=3
 
@@ -18,26 +24,27 @@ TMPDIR="$HOME/.cache/weather"
 mkdir -p "$TMPDIR"
 PROVIDER_STATEFILE="$TMPDIR/weather_provider"
 
-# Provider's toggle between "wttr" or "open-meteo"
-if [[ ! -f $PROVIDER_STATEFILE ]]; then echo "wttr" > "$PROVIDER_STATEFILE"; fi
+# Provider's wind_mode between "wttr" or "open-meteo"
+if [[ ! -f $PROVIDER_STATEFILE ]]; then echo $DEFAULT_PROVIDER > "$PROVIDER_STATEFILE"; fi
 
 STATEFILE="$TMPDIR/weather_mode"   # remembers whether to show km/h or Bft
-if [[ ! -f $STATEFILE ]]; then echo "bft" > "$STATEFILE"; fi
+if [[ ! -f $STATEFILE ]]; then echo $DEFAULT_WIND > "$STATEFILE"; fi
 
-# If called with "toggle", switch mode and exit
-if [[ "$1" == "toggle" ]]; then
+# If called with "wind_mode", switch mode and exit
+if [[ "$1" == "wind_mode" ]]; then
   mode=$(<"$STATEFILE")
-  if [[ "$mode" == "kmh" ]]; then
-    echo "bft" > "$STATEFILE"
-  else
-    echo "kmh" > "$STATEFILE"
-  fi
+  case "$mode" in
+    kmh)   echo "bft"   > "$STATEFILE" ;;
+    bft)   echo "knots" > "$STATEFILE" ;;
+    knots) echo "kmh"   > "$STATEFILE" ;;
+    *)     echo "kmh"   > "$STATEFILE" ;;  # fallback
+  esac
   exit 0
 fi
 
 mode=$(<"$STATEFILE")
 
-# If called with "provider", toggle weather provider and exit
+# If called with "provider", wind_mode weather provider and exit
 if [[ "$1" == "provider" ]]; then
   provider=$(<"$PROVIDER_STATEFILE")
   if [[ "$provider" == "wttr" ]]; then
@@ -87,7 +94,7 @@ degree_to_dir() {
   echo "${arr[$((val % 16))]}"
 }
 
-# --- 3) km/h → Beaufort ---
+# --- 3) km/h → Beaufort or knots ---
 kmh_to_bft() {
   local kmh=$1
   if   (( kmh < 1 ));   then echo 0
@@ -104,6 +111,11 @@ kmh_to_bft() {
   elif (( kmh <= 117 )); then echo 11
   else echo 12
   fi
+}
+
+kmh_to_knots() {
+  # 1 knot = 1.852 km/h
+  awk "BEGIN { printf \"%.1f\", $1 / 1.852 }"
 }
 
 # --- 4) Open-Meteo Greek Translations ---
@@ -177,9 +189,21 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
         rain=$(echo "${rain:-0}" | awk '{print int($1+0.5)}')
         w=$(echo "${w:-0}" | awk '{print int($1+0.5)}')
 
-        if [[ "$mode" == "kmh" ]]; then wind_disp="${w} km/h"
-        else wind_disp="$(kmh_to_bft "$w") Bft"; fi
-        
+	case "$mode" in
+	  kmh)
+	    wind_disp="${w} km/h"
+	    ;;
+	  bft)
+	    wind_disp="$(kmh_to_bft "$w") Bft"
+	    ;;
+	  knots)
+	    wind_disp="$(kmh_to_knots "$w") kt"
+	    ;;
+	  *)
+	    wind_disp="${w} km/h"
+	    ;;
+	esac
+
         printf "%s: %s %s %s°-%s° (👤%s°C) ☔ %s%% %s %s\n" \
           "$day_fmt" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$rain" "$wind_disp" "$(arrow_for_dir "$dir")"
       done
@@ -230,8 +254,17 @@ else
           day=$(date -d "$day" '+%d-%m-%Y')
         fi
 
-        if [[ "$mode" == "kmh" ]]; then wind_disp="${w} km/h"
-        else wind_disp="$(kmh_to_bft "$w") Bft"; fi
+	case "$mode" in
+	  kmh)
+	    wind_disp="${w} km/h"
+	    ;;
+	  bft)
+	    wind_disp="$(kmh_to_bft "$w") Bft"
+	    ;;
+	  knots)
+	    wind_disp="$(kmh_to_knots "$w") kt"
+	    ;;
+	esac
 
         printf "%s: %s %s %s°-%s° (👤%s°C) ☔ %s%% %s %s\n" \
           "$day" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$rain" "$wind_disp" "$(arrow_for_dir "$d")"
@@ -241,11 +274,20 @@ else
 fi
 
 # --- 6) Build bar text ---
-if [[ "$mode" == "kmh" ]]; then
-  wind_display="${cur_wind} km/h"
-else
-  wind_display="$(kmh_to_bft "$cur_wind") Bft"
-fi
+case "$mode" in
+  kmh)
+    wind_display="${cur_wind} km/h"
+    ;;
+  bft)
+    wind_display="$(kmh_to_bft "$cur_wind") Bft"
+    ;;
+  knots)
+    wind_display="$(kmh_to_knots "$cur_wind") kt"
+    ;;
+  *)
+    wind_display="${cur_wind} km/h"
+    ;;
+esac
 
 text="$(icon_for_code "$cur_code") ${cur_temp}°C $wind_display $(arrow_for_dir "$cur_dir")"
 
@@ -282,7 +324,7 @@ if [[ -t 1 ]]; then
   echo "$tooltip"
   echo ""
   echo "🔧 Εντολές:"
-  echo "  • Αλλαγή μονάδων ανέμου:   weather toggle && weather"
+  echo "  • Αλλαγή μονάδων ανέμου:   weather wind_mode && weather"
   echo "  • Αλλαγή παρόχου:          weather provider && weather"
   exit 0
 fi
