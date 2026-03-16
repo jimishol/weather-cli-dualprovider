@@ -1,6 +1,8 @@
 ### weather-cli-dualprovider
 ---
 
+![Waybar weather module](./screenshot-waybar.png)
+
 ## Features
 - **Dual providers**: Open‑Meteo and wttr.in with automatic fallback on API errors.  
 - **Why dual providers**: Open‑Meteo generally provides **more accurate forecasts**, while **wttr.in** can deliver **more accurate current conditions** when there is a nearby weather station.  
