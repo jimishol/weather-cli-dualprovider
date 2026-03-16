@@ -32,6 +32,7 @@ chmod +x /home/youruser/.config/waybar/scripts/weather/weather.sh
 ```bash
 mkdir -p ~/.config/waybar/scripts/weather
 cp weather.sh ~/.config/waybar/scripts/weather/weather.sh
+cp -r locales ~/.config/waybar/scripts/weather/locales
 chmod +x ~/.config/waybar/scripts/weather/weather.sh
 ```
 
