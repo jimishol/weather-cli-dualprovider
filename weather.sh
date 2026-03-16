@@ -25,14 +25,72 @@ WEATHER_LANG="${WEATHER_LANG:-${LANG%%.*}}"
 WEATHER_LANG="${WEATHER_LANG:0:2}"
 WEATHER_LANG="${WEATHER_LANG:-en}"
 
+# --- CLI override for language (minimal) ---
+CLI_LANG=""
+
+# Support: weather en   or   weather -l en   or   weather --lang=en
+i=0
+for arg in "$@"; do
+  ((i++))
+  case "$arg" in
+    -l|--lang)
+      next_index=$((i+1))
+      CLI_LANG="${!next_index}"
+      ;;
+    -l=*) CLI_LANG="${arg#-l=}" ;;
+    --lang=*) CLI_LANG="${arg#--lang=}" ;;
+    *)
+      # allow "weather en" (two-letter positional)
+      if [[ -z "$CLI_LANG" && "${#arg}" -eq 2 && "$arg" =~ ^[a-zA-Z]{2}$ ]]; then
+        CLI_LANG="$arg"
+      fi
+      ;;
+  esac
+done
+
+if [[ -n "$CLI_LANG" ]]; then
+  WEATHER_LANG="${CLI_LANG:0:2}"
+fi
+# --- end CLI override ---
+
+# --- HELP block start ---
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      cat <<'USAGE'
+Usage: weather [options] [lang]
+Options:
+  -l, --lang <code>    Force language code (en, el, fr, ...)
+  -h, --help           Show this help and exit
+
+Shortcuts:
+  weather.sh en           Equivalent to: weather.sh -l en
+  weather.sh provider     Toggle provider
+  weather.sh wind_mode    Toggle wind units
+
+Examples:  
+USAGE
+
+      # Toggle hints (kept in English for now; move to locales when translated)
+      echo "🔧 Toggle wind units:   weather.sh wind_mode && weather.sh"
+      echo "🔧 Toggle wind units:   weather.sh wind_mode && weather.sh en"
+      echo "🔧 Toggle provider:     weather.sh provider && weather.sh"
+      echo "🔧 Toggle provider:     weather.sh provider && weather.sh en"
+      echo ""
+      exit 0
+      ;;
+  esac
+done
+# --- HELP block end ---
+
 LOCALE_DIR="${LOCALE_DIR:-$(dirname "$0")/locales}"
 
-if [[ -f "$LOCALE_DIR/weather.${WEATHER_LANG}.sh" ]]; then
+if [[ -f "$LOCALE_DIR/weather.${WEATHER_LANG}" ]]; then
   # shellcheck source=/dev/null
-  source "$LOCALE_DIR/weather.${WEATHER_LANG}.sh"
+  source "$LOCALE_DIR/weather.${WEATHER_LANG}"
 else
   # shellcheck source=/dev/null
-  source "$LOCALE_DIR/weather.en.sh"
+  source "$LOCALE_DIR/weather.en"
 fi
 
 TERMINAL_MODE=false
@@ -375,8 +433,6 @@ tooltip=$(
 if [[ -t 1 ]]; then
   echo "$tooltip"
   echo ""
-  echo "🔧 $HELP_TOGGLE_UNITS"
-  echo "🔧 $HELP_TOGGLE_PROVIDER"
   exit 0
 fi
 

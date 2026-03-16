@@ -26,7 +26,3 @@ LABEL_RAIN="Βροχή"
 LABEL_PROVIDER_WTTR="wttr.in"
 LABEL_PROVIDER_OPENMETEO="Open‑Meteo"
 LABEL_UNKNOWN="Άγνωστο"
-
-# Optional: localized command help lines (used only in terminal mode)
-HELP_TOGGLE_UNITS="Αλλαγή μονάδων ανέμου:   weather wind_mode && weather"
-HELP_TOGGLE_PROVIDER="Αλλαγή παρόχου:          weather provider && weather"

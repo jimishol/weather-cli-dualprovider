@@ -42,7 +42,7 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 
 ### Locale files
 
-Locale files live in `locales/` and are named `weather.<lang>.sh`. The script derives **WEATHER_LANG** from your `LANG` environment (first two characters) and falls back to `en` if unset.
+Locale files live in `locales/` and are named `weather.<lang>`. The script derives **WEATHER_LANG** from your `LANG` environment (first two characters) and falls back to `en` if unset.
 
 **Each locale file must provide**
 - **`declare -A DESC_FOR_WMO=(...)`** — map WMO weather codes to localized short descriptions.  
@@ -54,23 +54,31 @@ Locale files live in `locales/` and are named `weather.<lang>.sh`. The script de
 - **wttr.in**: may return localized `lang_xx` fields; the script **prefers `lang_${WEATHER_LANG}`**, falls back to `weatherDesc` (English), then to `DESC_FOR_WMO` / `LABEL_UNKNOWN`.
 
 **Tip**
-- Name locale files using the two‑letter code the script derives (for example `weather.en.sh`, `weather.el.sh`) so they are picked up automatically.
+- Name locale files using the two‑letter code the script derives (for example `weather.en`, `weather.el`) so they are picked up automatically.
+
+**Creating a new translation**
+
+To add a new language, simply copy `locales/weather.en` to `locales/weather.<lang>`  
+(for example `weather.fr`, `weather.de`, `weather.it`) and translate the values.  
+No script changes are required — the script automatically detects and loads any
+`weather.<lang>` file as long as it contains valid shell code and defines the same
+variables as the English template.
 
 > **Note about toggle commands**  
 > The `provider` and `wind_mode` commands only change internal state files and do not print weather text. They do **not** use `WEATHER_LANG` or locale files. If you chain a toggle with a display call, remember the temporary env prefix applies only to the simple command it precedes. Example:
 > ```bash
 > # toggle provider (no localization needed)
 > # The script derives WEATHER_LANG from the environment (WEATHER_LANG → LANG → en).
-> weather provider
+> weather.sh provider
 >
 > # force weather in English (language matters here)
-> WEATHER_LANG=en weather
+> WEATHER_LANG=en weather.sh
+> weather.sh en
 >
 > # or force English for chained calls
 > # Toggles do not produce localized output — set `WEATHER_LANG` only for display invocations.
-> weather provider && env WEATHER_LANG=en weather
+> weather.sh provider && weather.sh -l en
 > ```
-
 ---
 
 ## Waybar and Hyprland Integration
@@ -132,6 +140,12 @@ WEATHER_LANG=en /home/youruser/.config/waybar/scripts/weather/weather.sh
 WEATHER_LANG=el /home/youruser/.config/waybar/scripts/weather/weather.sh
 ```
 
+**Using CLI override**
+```bash
+./weather.sh en
+./weather.sh -l en
+./weather.sh --lang=en
+```
 - **Toggle provider**
 ```bash
 /home/youruser/.config/waybar/scripts/weather/weather.sh provider

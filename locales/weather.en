@@ -26,7 +26,3 @@ LABEL_RAIN="Rain"
 LABEL_PROVIDER_WTTR="wttr.in"
 LABEL_PROVIDER_OPENMETEO="Open‑Meteo"
 LABEL_UNKNOWN="Unknown"
-
-# Optional: localized command help lines (used only in terminal mode)
-HELP_TOGGLE_UNITS="Toggle wind units:   weather wind_mode && weather"
-HELP_TOGGLE_PROVIDER="Toggle provider:      weather provider && weather"
