@@ -15,6 +15,9 @@ FORECAST_DAYS=3
 LAT="38.3678"
 LON="26.1361"
 
+# Location for wttr.in (Default: Chios, Greece)
+LOCATION="Χίος"
+
 # --- END OF CONFIG ---
 
 # Localization loading
@@ -217,7 +220,8 @@ else
   # Wttr.in logic
   
   WTTR_LANG="${WEATHER_LANG:-en}"
-  data=$(curl -s --connect-timeout 5 --max-time 10 "https://wttr.in/Χίος?format=j1&lang=${WTTR_LANG}")
+  data=$(curl -s --get --data-urlencode "q=${LOCATION}" \
+    --connect-timeout 5 --max-time 10 "https://wttr.in/?format=j1&lang=${WTTR_LANG}")
 
   if [[ -z "$data" || "$data" == *"Unknown location"* ]]; then
     if $TERMINAL_MODE; then

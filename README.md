@@ -38,6 +38,7 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 - **DEFAULT_WIND** — `"bft"`, `"knots"`, or `"kmh"`.  
 - **FORECAST_DAYS** — number of future days shown in tooltip (Open‑Meteo only).  
 - **LAT** and **LON** — coordinates for Open‑Meteo queries.
+- **LOCATION** — location for wttr.in (city name or "lat,lon"; default: Χίος, Greece).
 
 ### Locale files
 
