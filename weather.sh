@@ -44,6 +44,14 @@ TMPDIR="$HOME/.cache/weather"
 mkdir -p "$TMPDIR"
 PROVIDER_STATEFILE="$TMPDIR/weather_provider"
 
+# Retry guard to avoid infinite provider switching
+TWISTED=false
+for arg in "$@"; do
+  case "$arg" in
+    --twisted) TWISTED=true ;;
+  esac
+done
+
 # Provider's wind_mode between "wttr" or "open-meteo"
 if [[ ! -f $PROVIDER_STATEFILE ]]; then echo $DEFAULT_PROVIDER > "$PROVIDER_STATEFILE"; fi
 
@@ -151,12 +159,21 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
 
   if [[ -z "$data" ]]; then
     if $TERMINAL_MODE; then
-      # auto-switch provider
+      # auto-switch provider (write alternate provider first)
       echo "⚠️  API Error — switching provider from Open‑Meteo to wttr.in ..."
       echo "wttr" > "$PROVIDER_STATEFILE"
-      exec "$0" --terminal
+  
+      if $TWISTED; then
+        # second failure: do not switch again
+        echo "	⚠️ Both providers failed; aborting. ⚠️"
+        exit 0
+      else
+        # mark that we already switched once and re-exec to pick up new provider
+        TWISTED=true
+        exec "$0" --terminal --twisted
+      fi
     else
-      echo '{"text":"API Error"}'
+      printf '%s\n' '{"text":"API Error"}'
       exit 0
     fi
   fi
@@ -225,11 +242,18 @@ else
 
   if [[ -z "$data" || "$data" == *"Unknown location"* ]]; then
     if $TERMINAL_MODE; then
-        echo "⚠️  API Error — switching provider from wttr.in to Open‑Meteo ..."
-        echo "open-meteo" > "$PROVIDER_STATEFILE"
-      exec "$0" --terminal
+      echo "⚠️  API Error — switching provider from wttr.in to Open‑Meteo ..."
+      echo "open-meteo" > "$PROVIDER_STATEFILE"
+  
+      if $TWISTED; then
+        echo "	⚠️ Both providers failed; aborting. ⚠️"
+        exit 0
+      else
+        TWISTED=true
+        exec "$0" --terminal --twisted
+      fi
     else
-      echo '{"text":"API Error"}'
+      printf '%s\n' '{"text":"API Error"}'
       exit 0
     fi
   fi
