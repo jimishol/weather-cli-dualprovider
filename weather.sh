@@ -15,6 +15,23 @@ FORECAST_DAYS=3
 LAT="38.3678"
 LON="26.1361"
 
+# --- END OF CONFIG ---
+
+# Localization loading
+WEATHER_LANG="${WEATHER_LANG:-${LANG%%.*}}"
+WEATHER_LANG="${WEATHER_LANG:0:2}"
+WEATHER_LANG="${WEATHER_LANG:-en}"
+
+LOCALE_DIR="${LOCALE_DIR:-$(dirname "$0")/locales}"
+
+if [[ -f "$LOCALE_DIR/weather.${WEATHER_LANG}.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$LOCALE_DIR/weather.${WEATHER_LANG}.sh"
+else
+  # shellcheck source=/dev/null
+  source "$LOCALE_DIR/weather.en.sh"
+fi
+
 TERMINAL_MODE=false
 if [[ -t 1 ]]; then
   TERMINAL_MODE=true
@@ -94,7 +111,7 @@ degree_to_dir() {
   echo "${arr[$((val % 16))]}"
 }
 
-# --- 3) km/h → Beaufort or knots ---
+# --- 3) km/h → Beaufort ---
 kmh_to_bft() {
   local kmh=$1
   if   (( kmh < 1 ));   then echo 0
@@ -113,25 +130,11 @@ kmh_to_bft() {
   fi
 }
 
+# --- 4) km/h → knots ---
 kmh_to_knots() {
   # 1 knot = 1.852 km/h
   awk "BEGIN { printf \"%.1f\", $1 / 1.852 }"
 }
-
-# --- 4) Open-Meteo Greek Translations ---
-# Liberally spaced out
-declare -A DESC_FOR_WMO=(
-  [0]="Καθαρός" [1]="Κυρίως αίθριος" [2]="Μερικώς νεφελώδης" [3]="Συννεφιά"
-  [45]="Ομίχλη" [48]="Ομίχλη πάχνης"
-  [51]="Ελαφριά ψιχάλα" [53]="Μέτρια ψιχάλα" [55]="Πυκνή ψιχάλα"
-  [56]="Παγωμένη ψιχάλα" [57]="Πυκνή παγωμένη ψιχάλα"
-  [61]="Ασθενής βροχή" [63]="Μέτρια βροχή" [65]="Ισχυρή βροχή"
-  [66]="Παγωμένη βροχή" [67]="Ισχυρή παγωμένη βροχή"
-  [71]="Ασθενής χιονόπτωση" [73]="Μέτρια χιονόπτωση" [75]="Ισχυρή χιονόπτωση"
-  [77]="Νιφάδες χιονιού" [80]="Ασθενής νεροποντή" [81]="Μέτρια νεροποντή" [82]="Ισχυρή νεροποντή"
-  [85]="Ασθενείς χιονοπτώσεις" [86]="Ισχυρές χιονοπτώσεις"
-  [95]="Καταιγίδα" [96]="Καταιγίδα με χαλάζι" [99]="Ισχυρή καταιγίδα"
-)
 
 # --- 5) Fetch Data based on Provider ---
 if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
@@ -160,7 +163,7 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
   cur_wind=$(jq -r '.current.wind_speed_10m // 0' <<<"$data" | awk '{print int($1+0.5)}')
   cur_dir_deg=$(jq -r '.current.wind_direction_10m // 0' <<<"$data")
   cur_dir=$(degree_to_dir "$cur_dir_deg")
-  cur_desc="${DESC_FOR_WMO[$cur_code]:-Άγνωστο}"
+  cur_desc="${DESC_FOR_WMO[$cur_code]:-${LABEL_UNKNOWN:-Unknown}}"
 
   sunrise=$(jq -r '.daily.sunrise[0] // ""' <<<"$data" | cut -dT -f2)
   sunset=$(jq -r '.daily.sunset[0] // ""' <<<"$data" | cut -dT -f2)
@@ -179,7 +182,7 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
     ' <<<"$data" \
     | while IFS="|" read -r day code tmin tmax tfeel rain w d_deg; do
         day_fmt=$(date -d "$day" '+%d-%m-%Y' 2>/dev/null || echo "$day")
-        desc="${DESC_FOR_WMO[$code]:-Άγνωστο}"
+	desc="${DESC_FOR_WMO[$code]:-${LABEL_UNKNOWN:-Unknown}}"
         dir=$(degree_to_dir "${d_deg:-0}")
 
         # Safe rounding map
@@ -212,7 +215,10 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
 else
 
   # Wttr.in logic
-  data=$(curl -s --connect-timeout 5 --max-time 10 'https://wttr.in/Χίος?format=j1&lang=el')
+  
+  WTTR_LANG="${WEATHER_LANG:-en}"
+  data=$(curl -s --connect-timeout 5 --max-time 10 "https://wttr.in/Χίος?format=j1&lang=${WTTR_LANG}")
+
   if [[ -z "$data" || "$data" == *"Unknown location"* ]]; then
     if $TERMINAL_MODE; then
         echo "⚠️  API Error — switching provider from wttr.in to Open‑Meteo ..."
@@ -228,7 +234,21 @@ else
   cur_temp=$(jq -r '.current_condition[0].temp_C'           <<<"$data")
   cur_wind=$(jq -r '.current_condition[0].windspeedKmph'    <<<"$data")
   cur_dir=$(jq -r '.current_condition[0].winddir16Point'    <<<"$data")
-  cur_desc=$(jq -r '.current_condition[0].lang_el[0].value' <<<"$data")
+
+  lang_key="lang_${WTTR_LANG}"
+
+  cur_desc=$(
+    jq -r --arg key "$lang_key" '
+      (.current_condition[0][$key][0].value
+       // .current_condition[0].weatherDesc[0].value
+       // "")
+    ' <<<"$data"
+  )
+  
+  # Normalize in shell
+  if [[ -z "$cur_desc" || "$cur_desc" == "null" ]]; then
+    cur_desc="${LABEL_UNKNOWN:-Unknown}"
+  fi
 
   sunrise=$(jq -r '.weather[0].astronomy[0].sunrise' <<<"$data")
   sunset=$(jq -r '.weather[0].astronomy[0].sunset' <<<"$data")
@@ -243,30 +263,38 @@ else
 
   # Forecast mapped to Min/Max, Midday Feeling, and Rain Probability
   FORECAST_LINES=$(
-    jq -r '
+    jq -r --arg key "$lang_key" '
       .weather[1:3][] |
-      "\(.date)|\(.hourly[4].weatherCode)|\(.hourly[4].lang_el[0].value)|\(.mintempC)|\(.maxtempC)|\(.hourly[4].FeelsLikeC)|\([.hourly[].chanceofrain | tonumber] | max)|\(.hourly[4].windspeedKmph)|\(.hourly[4].winddir16Point)"
+      "\(.date)|\(.hourly[4].weatherCode)|\((.hourly[4][$key][0].value
+         // .hourly[4].weatherDesc[0].value
+         // ""))|\(.mintempC)|\(.maxtempC)|\(.hourly[4].FeelsLikeC)|\([.hourly[].chanceofrain | tonumber] | max)|\(.hourly[4].windspeedKmph)|\(.hourly[4].winddir16Point)"
     ' <<<"$data" \
     | while IFS="|" read -r day code desc tmin tmax tfeel rain w d; do
-        if [[ "$day" < "$local_date" ]]; then
-          day=$(date -d "$day +1 day" '+%d-%m-%Y')
-        else
-          day=$(date -d "$day" '+%d-%m-%Y')
-        fi
+  
+      # Normalize desc in shell
+      if [[ -z "$desc" || "$desc" == "null" ]]; then
+        desc="${LABEL_UNKNOWN:-Unknown}"
+      fi
+  
+      if [[ "$day" < "$local_date" ]]; then
+        day=$(date -d "$day +1 day" '+%d-%m-%Y')
+      else
+        day=$(date -d "$day" '+%d-%m-%Y')
+      fi
 
-	case "$mode" in
-	  kmh)
-	    wind_disp="${w} km/h"
-	    ;;
-	  bft)
-	    wind_disp="$(kmh_to_bft "$w") Bft"
-	    ;;
-	  knots)
-	    wind_disp="$(kmh_to_knots "$w") kt"
-	    ;;
-	esac
+      case "$mode" in
+        kmh)
+          wind_disp="${w} km/h"
+          ;;
+        bft)
+          wind_disp="$(kmh_to_bft "$w") Bft"
+          ;;
+        knots)
+          wind_disp="$(kmh_to_knots "$w") kt"
+          ;;
+      esac
 
-        printf "%s: %s %s %s°-%s° (👤%s°C) ☔ %s%% %s %s\n" \
+      printf "%s: %s %s %s°-%s° (👤%s°C) ☔ %s%% %s %s\n" \
           "$day" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$rain" "$wind_disp" "$(arrow_for_dir "$d")"
       done
   )
@@ -294,27 +322,23 @@ text="$(icon_for_code "$cur_code") ${cur_temp}°C $wind_display $(arrow_for_dir 
 # --- 7) Build tooltip ---
 # Contains Min-Max, Feeling, and Rain probability for today ONLY.
 tooltip=$(
-  printf "🌅 %s - 🌇 %s | %s %s\n" \
+
+    printf "🌅 %s - 🌇 %s | %s %s\n" \
     "$sunrise" \
     "$sunset" \
     "$(icon_for_code "$cur_code")" \
     "$cur_desc"
-  
-  printf "🌡️ %s°C-%s°C (Αίσθηση: %s°C) | ☔ %s%% | %s %s\n" \
-    "$today_min" \
-    "$today_max" \
-    "$cur_feels" \
-    "$today_rain" \
-    "$wind_display" \
-    "$(arrow_for_dir "$cur_dir")"
+    
+    printf "🌡️ %s°C-%s°C (%s: %s°C) | %s %s | %s %s\n" \
+      "$today_min" "$today_max" "$LABEL_FEELS" "$cur_feels" "$LABEL_RAIN" "$today_rain" "$wind_display" "$(arrow_for_dir "$cur_dir")"
 
   echo ""  
 
   echo "$FORECAST_LINES"
 
   case "$WEATHER_PROVIDER" in
-    wttr)        provider_label="wttr.in" ;;
-    open-meteo)  provider_label="Open-Meteo" ;;
+    wttr)       provider_label="${LABEL_PROVIDER_WTTR:-wttr.in}" ;;
+    open-meteo) provider_label="${LABEL_PROVIDER_OPENMETEO:-Open-Meteo}" ;;
   esac
   
   echo "$provider_label"
@@ -323,9 +347,8 @@ tooltip=$(
 if [[ -t 1 ]]; then
   echo "$tooltip"
   echo ""
-  echo "🔧 Εντολές:"
-  echo "  • Αλλαγή μονάδων ανέμου:   weather wind_mode && weather"
-  echo "  • Αλλαγή παρόχου:          weather provider && weather"
+  echo "🔧 $HELP_TOGGLE_UNITS"
+  echo "🔧 $HELP_TOGGLE_PROVIDER"
   exit 0
 fi
 

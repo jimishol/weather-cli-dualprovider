@@ -1,57 +1,91 @@
-# weather-cli-dualprovider
-
-A portable Bash weather script for Waybar and CLI with two interchangeable providers, emoji icons, Greek localization, and flexible wind units.
+### weather-cli-dualprovider
+---
 
 ## Features
 - **Dual providers**: Open‑Meteo and wttr.in with automatic fallback on API errors.  
-- **Why dual providers**: Open‑Meteo generally provides **more accurate forecasts**, while **wttr.in** can deliver **more accurate current conditions** when there is a nearby weather station. This is the reason for the dual‑provider design.  
+- **Why dual providers**: Open‑Meteo generally provides **more accurate forecasts**, while **wttr.in** can deliver **more accurate current conditions** when there is a nearby weather station.  
 - **Emoji icons** for quick visual weather cues.  
-- **Greek localization** for Open‑Meteo descriptions.  
+- **Localization**: Greek and English provided; additional locales supported via `locales/`.  
 - **Wind units**: **Beaufort**, **km/h**, and **knots** (displayed as **kt**).  
 - **Wind direction arrows** using a 16‑point compass.  
 - **Waybar JSON output** compatible with Waybar modules.  
-- **Full CLI compatibility**: works in desktop Linux, Termux, TTY, SSH, and headless environments.  
+- **CLI and lock screen friendly**: works in desktop Linux, Termux, TTY, SSH, Waybar, and Hyprland/hyprlock.  
 - **Forecast tooltip** with sunrise/sunset, min/max, feels like, and rain probability.  
-- **Per‑user persistent state** stored under `~/.cache/weather` by default.
+- **Per‑user persistent state** stored under **`~/.cache/weather`** by default.
+
+---
 
 ## Requirements
 - **bash**, **curl**, **jq**, **awk**, **date** (GNU coreutils).  
 - Waybar for JSON module integration (optional).  
-- Ensure the script is executable: `chmod +x /path/to/weather.sh`.
-
-## Installation
-1. Place the script where you prefer (example uses Waybar scripts folder):
+- Ensure the script is executable:  
 ```bash
-mkdir -p ~/.config/waybar/scripts
-cp weather.sh ~/.config/waybar/scripts/weather.sh
-chmod +x ~/.config/waybar/scripts/weather.sh
-```
-2. The script creates and uses a per‑user state directory by default:
-```bash
-TMPDIR="$HOME/.cache/weather"
-mkdir -p "$TMPDIR"
-```
-3. Default provider and wind mode are initialized on first run:
-```bash
-DEFAULT_PROVIDER="wttr"
-DEFAULT_WIND="bft"
+chmod +x /home/youruser/.config/waybar/scripts/weather/weather.sh
 ```
 
-## Waybar Configuration
-Add a custom module to your Waybar config (use absolute paths if you prefer):
+---
 
+## Installation and Configuration
+**Install script**
+```bash
+mkdir -p ~/.config/waybar/scripts/weather
+cp weather.sh ~/.config/waybar/scripts/weather/weather.sh
+chmod +x ~/.config/waybar/scripts/weather/weather.sh
+```
+
+**Defaults (edit top of script)**
+- **DEFAULT_PROVIDER** — `"wttr"` or `"open-meteo"`.  
+- **DEFAULT_WIND** — `"bft"`, `"knots"`, or `"kmh"`.  
+- **FORECAST_DAYS** — number of future days shown in tooltip (Open‑Meteo only).  
+- **LAT** and **LON** — coordinates for Open‑Meteo queries.
+
+### Locale files
+
+Locale files live in `locales/` and are named `weather.<lang>.sh`. The script derives **WEATHER_LANG** from your `LANG` environment (first two characters) and falls back to `en` if unset.
+
+**Each locale file must provide**
+- **`declare -A DESC_FOR_WMO=(...)`** — map WMO weather codes to localized short descriptions.  
+- **`LABEL_*` variables** — UI labels used throughout the script (e.g., `LABEL_FEELS`, `LABEL_RAIN`, `LABEL_PROVIDER_WTTR`).  
+- **`LABEL_UNKNOWN`** — final localized fallback when no description is available.
+
+**Provider behavior**
+- **Open‑Meteo**: returns numeric WMO codes only; the script **relies on `DESC_FOR_WMO`** to produce human text.  
+- **wttr.in**: may return localized `lang_xx` fields; the script **prefers `lang_${WEATHER_LANG}`**, falls back to `weatherDesc` (English), then to `DESC_FOR_WMO` / `LABEL_UNKNOWN`.
+
+**Tip**
+- Name locale files using the two‑letter code the script derives (for example `weather.en.sh`, `weather.el.sh`) so they are picked up automatically.
+
+> **Note about toggle commands**  
+> The `provider` and `wind_mode` commands only change internal state files and do not print weather text. They do **not** use `WEATHER_LANG` or locale files. If you chain a toggle with a display call, remember the temporary env prefix applies only to the simple command it precedes. Example:
+> ```bash
+> # toggle provider (no localization needed)
+> # The script derives WEATHER_LANG from the environment (WEATHER_LANG → LANG → en).
+> weather provider
+>
+> # force weather in English (language matters here)
+> WEATHER_LANG=en weather
+>
+> # or force English for chained calls
+> # Toggles do not produce localized output — set `WEATHER_LANG` only for display invocations.
+> weather provider && env WEATHER_LANG=en weather
+> ```
+
+---
+
+## Waybar and Hyprland Integration
+**Waybar module example** (force English)
 ```json
 "custom/weather": {
   "format": "{}",
   "interval": 600,
-  "exec": "~/.config/waybar/scripts/weather.sh",
+  "exec": "WEATHER_LANG=en /home/youruser/.config/waybar/scripts/weather/weather.sh",
   "return-type": "json",
-  "on-click": "~/.config/waybar/scripts/weather.sh provider",
-  "on-click-right": "~/.config/waybar/scripts/weather.sh wind_mode"
+  "on-click": "/home/youruser/.config/waybar/scripts/weather/weather.sh provider",
+  "on-click-right": "/home/youruser/.config/waybar/scripts/weather/weather.sh wind_mode"
 }
 ```
 
-**CSS example**
+**Waybar CSS example**
 ```css
 #custom-weather {
   padding: 0 10px;
@@ -60,40 +94,67 @@ Add a custom module to your Waybar config (use absolute paths if you prefer):
 }
 ```
 
-## Usage
-- **Show tooltip / Waybar JSON**:
-```bash
-/path/to/weather.sh
-```
-- **Toggle provider** (wttr.in ↔ Open‑Meteo):
-```bash
-/path/to/weather.sh provider
-```
-- **Cycle wind units** (km/h → Beaufort → knots → km/h):
-```bash
-/path/to/weather.sh wind_mode
-```
-- **Alias example** (optional, for CLI convenience):
-```bash
-alias weather="cal -3 && echo '\n' && ~/.config/waybar/scripts/weather.sh"
+**Hyprland / hyprlock usage**
+- Use absolute paths to avoid environment differences when the lock process runs.
+- **Show short text.** Hyprlock does not support separate tooltip fields. 
+```ini
+label {
+    monitor =
+    text = cmd[update:600000] /home/youruser/.config/waybar/scripts/weather/weather.sh | jq -r '.text'
+    font_size = 20
+    font_family = JetBrains Mono
+    color = rgba(180,220,255,1.0)
+    position = 0, 120
+    halign = center
+    valign = center
+}
 ```
 
-## Configuration
-Edit the top of the script to change defaults:
-- **DEFAULT_PROVIDER** — `"wttr"` or `"open-meteo"`.  
-- **DEFAULT_WIND** — `"bft"`, `"knots"`, or `"kmh"`.  
-- **FORECAST_DAYS** — number of future days shown in tooltip (Open‑Meteo only).  
-- **LAT** and **LON** — coordinates for Open‑Meteo queries.
+---
 
-> **From the script:**  
-> `# Default Provider as "wttr" or "open-meteo"`  
-> `# Provider's wind_mode between "bft", "knots" or "kmh"`
+### Forcing a Language and CLI Usage
 
-## Implementation Notes
-- **Unit abbreviation**: knots are displayed as **kt** to follow meteorological conventions.  
-- **State files**: the script stores `weather_provider` and `weather_mode` in the per‑user state directory (default `~/.cache/weather`) so Waybar and CLI runs share the same state.  
+**CLI usage**  
 
-## License 📝
+- **Show tooltip / Waybar JSON**
+```bash
+/home/youruser/.config/waybar/scripts/weather/weather.sh
+```
+
+**Force a language with `WEATHER_LANG`**
+- **English**
+```bash
+WEATHER_LANG=en /home/youruser/.config/waybar/scripts/weather/weather.sh
+```
+- **Greek**
+```bash
+WEATHER_LANG=el /home/youruser/.config/waybar/scripts/weather/weather.sh
+```
+
+- **Toggle provider**
+```bash
+/home/youruser/.config/waybar/scripts/weather/weather.sh provider
+```
+- **Cycle wind units**
+```bash
+/home/youruser/.config/waybar/scripts/weather/weather.sh wind_mode
+```
+
+**Auto provider switch on API error**  
+- The script attempts an **automatic provider switch** when a provider returns no data or an error **only if** the script detects it is running in a terminal (`TERMINAL_MODE=true`, i.e., `-t 1` is true). In that case the script writes the alternate provider to the provider state file and re‑executes itself in terminal mode, printing a short warning like:
+```
+⚠️  API Error — switching provider from Open‑Meteo to wttr.in ...
+```
+or
+```
+⚠️  API Error — switching provider from wttr.in to Open‑Meteo ...
+```
+- If the script is **not** running in a terminal (for example when Waybar or another bar runs it), it **does not** auto‑switch; instead it emits a minimal JSON error (`{"text":"API Error"}`) and exits.  
+- **Implication:** when using the script from a bar/daemon, prefer explicit provider toggles or restart the module if you want a provider change after an API failure.
+
+---
+
+## License
 
 This project is licensed under the **GNU General Public License v3.0**.  
 You can find the full license text in the [LICENSE](LICENSE) file.
