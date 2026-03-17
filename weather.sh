@@ -415,7 +415,7 @@ tooltip=$(
     "$(icon_for_code "$cur_code")" \
     "$cur_desc"
     
-    printf "🌡️ %s°C-%s°C (%s: %s°C) | %s %s | %s %s\n" \
+    printf "🌡️ %s°C-%s°C (%s: %s°C) | %s %s%% | %s %s\n" \
       "$today_min" "$today_max" "$LABEL_FEELS" "$cur_feels" "$LABEL_RAIN" "$today_rain" "$wind_display" "$(arrow_for_dir "$cur_dir")"
 
   echo ""  
