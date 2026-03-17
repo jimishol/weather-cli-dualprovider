@@ -172,6 +172,13 @@ or
 
 ---
 
+## Acknowledgments / Data Providers
+
+This project would not be possible without the free access provided by these excellent weather APIs. If you use this script, please respect their API usage policies.
+
+* **[Open-Meteo](https://open-meteo.com/)**: Weather data and forecasts provided by Open-Meteo.com under the CC BY 4.0 license.
+* **[wttr.in](https://wttr.in/)**: The right way to check the weather, created and maintained by Igor Chubin.
+
 ## License
 
 This project is licensed under the **GNU General Public License v3.0**.  
