@@ -16,7 +16,7 @@ LAT="38.3678"
 LON="26.1361"
 
 # Location for wttr.in (Default: Chios, Greece)
-LOCATION="Χίος"
+LOCATION="Chios"
 
 # --- END OF CONFIG ---
 
@@ -165,7 +165,7 @@ declare -A ICON_FOR_CODE=(
   [356]="🌧️" [359]="🌧️" [362]="🌧️" [365]="🌧️" [368]="🌨️"
   [371]="❄️" [374]="🌧️" [377]="🌧️" [386]="⛈" [389]="🌩️" [392]="⛈" [395]="❄️"
 )
-icon_for_code(){ echo "${ICON_FOR_CODE[$1]:-✨}"; }
+icon_for_code(){ echo "${ICON_FOR_CODE["$1"]:-✨}"; }
 
 # --- 2) Wind direction → arrow ---
 declare -A WIND_ARROW=(
@@ -174,7 +174,7 @@ declare -A WIND_ARROW=(
   [S]="⬆️S" [SSW]="↗️SSW" [SW]="↗️SW" [WSW]="↗️WSW"
   [W]="➡️W" [WNW]="↘️WNW" [NW]="↘️NW" [NNW]="↘️NNW"
 )
-arrow_for_dir(){ echo "${WIND_ARROW[$1]:-}"; }
+arrow_for_dir(){ echo "${WIND_ARROW["$1"]:-}"; }
 
 # Convert degrees to 16-point compass (Used by Open-Meteo)
 degree_to_dir() {
@@ -295,16 +295,21 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
   )
 
 else
-
-  # Wttr.in logic
-  
+# Wttr.in logic
+  	
   WTTR_LANG="${WEATHER_LANG:-en}"
-  data=$(curl -s --get --data-urlencode "q=${LOCATION}" \
-    --connect-timeout 5 --max-time 10 "https://wttr.in/?format=j1&lang=${WTTR_LANG}")
+  # URL-encode the location but KEEP commas decoded so coordinates work correctly
+  ENCODED_LOC=$(jq -nr --arg v "$LOCATION" '$v|@uri | gsub("%2C"; ",")')
+  
+  # Added -L to follow redirects just in case wttr.in redirects the city name
+  data=$(curl -sL --connect-timeout 5 --max-time 10 "https://wttr.in/${ENCODED_LOC}?format=j1&lang=${WTTR_LANG}")
 
-  if [[ -z "$data" || "$data" == *"Unknown location"* ]]; then
+  # Check if JSON is valid and actually contains weather data (prevents jq 'null' errors)
+  is_valid=$(jq -r 'if type == "object" and (.current_condition != null or .data.current_condition != null) then "yes" else "no" end' <<<"$data" 2>/dev/null)
+
+  if [[ "$is_valid" != "yes" ]]; then
     if $TERMINAL_MODE; then
-      echo "⚠️  API Error — switching provider from wttr.in to Open‑Meteo ..."
+      echo "⚠️  API Error or Invalid Location — switching provider from wttr.in to Open‑Meteo ..."
       echo "open-meteo" > "$PROVIDER_STATEFILE"
   
       if $TWISTED; then
@@ -319,6 +324,9 @@ else
       exit 0
     fi
   fi
+
+  # wttr.in sometimes nests the response inside a "data" object. Normalize it so it always starts at the root:
+  data=$(jq 'if type == "object" and .data then .data else . end' <<<"$data")
 
   cur_code=$(jq -r '.current_condition[0].weatherCode'      <<<"$data")
   cur_temp=$(jq -r '.current_condition[0].temp_C'           <<<"$data")
