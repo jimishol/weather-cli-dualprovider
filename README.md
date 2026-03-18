@@ -18,9 +18,21 @@
 ---
 
 ## Requirements
-- **bash**, **curl**, **jq**, **awk**, **date** (GNU coreutils).  
-- Waybar for JSON module integration (optional).  
-- Ensure the script is executable:  
+
+- **bash** (POSIX shell compatible)
+- **curl**
+- **jq**
+- **awk**
+- **GNU date** (coreutils date; macOS users may need `gdate` from coreutils)
+- **Optional**: Waybar for JSON module integration
+
+**Emoji and fonts**
+- For best emoji rendering install **Google Noto Color Emoji**.
+- Fallback font: **JetBrains Mono**.
+- Terminal rendering depends on compositor and fontconfig (e.g., Hyprland).
+
+**Make script executable**
+- Ensure the script is executable:
 ```bash
 chmod +x /home/youruser/.config/waybar/scripts/weather/weather.sh
 ```

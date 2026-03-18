@@ -20,6 +20,10 @@ LOCATION="Χίος"
 
 # --- END OF CONFIG ---
 
+for cmd in bash curl jq awk date; do
+  command -v "$cmd" >/dev/null || { echo "Missing dependency: $cmd"; exit 1; }
+done
+
 # Localization loading
 WEATHER_LANG="${WEATHER_LANG:-${LANG%%.*}}"
 WEATHER_LANG="${WEATHER_LANG:0:2}"

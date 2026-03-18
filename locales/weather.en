@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # locales/weather.en.sh
 # English locale for weather-cli-dualprovider
+# Descriptions are original text written for this project. Numeric codes follow WMO.
 # LOCALE_VERSION helps detect incompatible changes
 LOCALE_VERSION="1"
 
