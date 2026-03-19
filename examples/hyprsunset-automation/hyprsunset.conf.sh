@@ -67,5 +67,7 @@ generate_transition "$SUNRISE" $NIGHT_TEMP $NIGHT_GAMMA $DAY_TEMP $DAY_GAMMA
 # Sunset transition: Day values -> Night values
 generate_transition "$SUNSET" $DAY_TEMP $DAY_GAMMA $NIGHT_TEMP $NIGHT_GAMMA
 
-# 5. Restart service to apply
-systemctl --user restart hyprsunset.service
+# 5. Restart hyprsunset via Hyprland IPC
+killall hyprsunset
+sleep 1
+hyprctl dispatch exec hyprsunset

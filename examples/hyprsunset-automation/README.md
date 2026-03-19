@@ -5,9 +5,9 @@ This example uses `weather.sh` to fetch exact sunrise and sunset times (in 24h f
 ## Prerequisites
 
 1. **Install hyprsunset**: Make sure `hyprsunset` is installed on your system (e.g., via your package manager).
-2. **Setup hyprsunset service**: This automation script assumes you are running `hyprsunset` as a systemd user service so it can restart it seamlessly. Make sure `hyprsunset.service` exists and is enabled:
-   ```bash
-   systemctl --user enable --now hyprsunset.service
+2. **Autostart in Hyprland**: Since systemd user services often lack the necessary Wayland environment variables at boot, it is highly recommended to start `hyprsunset` natively via Hyprland. Add this to your `~/.config/hypr/hyprland.conf`:
+   ```ini
+   exec-once = hyprsunset
    ```
 
 ## Installation
