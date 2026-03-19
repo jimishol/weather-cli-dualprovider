@@ -53,7 +53,7 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 - **DEFAULT_WIND** — `"bft"`, `"knots"`, or `"kmh"`.  
 - **FORECAST_DAYS** — number of future days shown in tooltip (Open‑Meteo only).  
 - **LAT** and **LON** — coordinates for Open‑Meteo queries.
-- **LOCATION** — location for wttr.in (city name or "lat,lon"; default: Χίος, Greece).
+- **LOCATION** — location for wttr.in (city name in English or "lat,lon"; default: Chios, Greece).
 
 ### Locale files
 
@@ -134,6 +134,44 @@ label {
 }
 ```
 
+### Advanced Usage: Automating Screen Gamma (hyprsunset)
+Because the script outputs detailed text in the terminal, you can parse it to extract your local sunrise and sunset times. This is incredibly useful for dynamically generating configuration files for blue-light filters like `hyprsunset`.
+
+**Important:** You must force the **Open-Meteo** provider (`-p open-meteo`) for this parsing. Open-Meteo outputs time in the **24-hour format** (e.g., `18:26`) which is required by `hyprsunset`, whereas wttr.in uses the 12-hour format (e.g., `06:26 PM`).
+
+You can run a bash script on startup to fetch these times and generate a literal `hyprsunset.conf` file automatically:
+
+```bash
+#!/usr/bin/env bash
+
+# 1. Fetch times (forcing open-meteo for 24h format, and English for reliable parsing)
+WEATHER_SCRIPT="/home/youruser/.config/waybar/scripts/weather/weather.sh"
+SUNRISE=$("$WEATHER_SCRIPT" -p open-meteo -l en | grep -oP '🌅 \K[0-9:]+')
+SUNSET=$("$WEATHER_SCRIPT" -p open-meteo -l en | grep -oP '🌇 \K[0-9:]+')
+
+# Fallback values just in case the API fails or you have no internet on boot
+SUNRISE=${SUNRISE:-06:30}
+SUNSET=${SUNSET:-20:00}
+
+# 2. Generate the actual hyprsunset.conf file with literal time values
+cat <<EOF > ~/.config/hypr/hyprsunset.conf
+max-gamma = 100
+
+profile {
+    time = $SUNRISE
+    identity = true
+}
+
+profile {
+    time = $SUNSET
+    temperature = 4500
+    gamma = 0.8
+}
+EOF
+
+# Note: You can now launch hyprsunset, and it will read the newly created config!
+```
+
 ---
 
 ### Forcing a Language and CLI Usage
@@ -155,12 +193,22 @@ WEATHER_LANG=en /home/youruser/.config/waybar/scripts/weather/weather.sh
 WEATHER_LANG=el /home/youruser/.config/waybar/scripts/weather/weather.sh
 ```
 
-**Using CLI override**
+**Using CLI override (Language & Provider)**
+You can force the script to use a specific language or provider for a single run without changing your saved toggles.
 ```bash
 ./weather.sh en
 ./weather.sh -l en
 ./weather.sh --lang=en
+
+# Force provider
+./weather.sh -p wttr
+./weather.sh --provider=open-meteo
+
+# Combine both
+./weather.sh -p open-meteo en
 ```
+
+**Toggling states**
 - **Toggle provider**
 ```bash
 /home/youruser/.config/waybar/scripts/weather/weather.sh provider
@@ -173,11 +221,7 @@ WEATHER_LANG=el /home/youruser/.config/waybar/scripts/weather/weather.sh
 **Auto provider switch on API error**  
 - The script attempts an **automatic provider switch** when a provider returns no data or an error **only if** the script detects it is running in a terminal (`TERMINAL_MODE=true`, i.e., `-t 1` is true). In that case the script writes the alternate provider to the provider state file and re‑executes itself in terminal mode, printing a short warning like:
 ```
-⚠️  API Error — switching provider from Open‑Meteo to wttr.in ...
-```
-or
-```
-⚠️  API Error — switching provider from wttr.in to Open‑Meteo ...
+⚠️  API Error or Invalid Location — switching provider from wttr.in to Open‑Meteo ...
 ```
 - If the script is **not** running in a terminal (for example when Waybar or another bar runs it), it **does not** auto‑switch; instead it emits a minimal JSON error (`{"text":"API Error"}`) and exits.  
 - **Implication:** when using the script from a bar/daemon, prefer explicit provider toggles or restart the module if you want a provider change after an API failure.
@@ -194,4 +238,4 @@ This project would not be possible without the free access provided by these exc
 ## License
 
 This project is licensed under the **GNU General Public License v3.0**.  
-You can find the full license text in the [LICENSE](LICENSE) file.
+You can find the full license text in the[LICENSE](LICENSE) file.

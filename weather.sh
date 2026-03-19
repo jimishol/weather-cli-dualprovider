@@ -29,10 +29,12 @@ WEATHER_LANG="${WEATHER_LANG:-${LANG%%.*}}"
 WEATHER_LANG="${WEATHER_LANG:0:2}"
 WEATHER_LANG="${WEATHER_LANG:-en}"
 
-# --- CLI override for language (minimal) ---
+# --- CLI override for language and provider (minimal) ---
 CLI_LANG=""
+CLI_PROVIDER=""
 
 # Support: weather en   or   weather -l en   or   weather --lang=en
+# Support: weather -p wttr  or  weather --provider=open-meteo
 i=0
 for arg in "$@"; do
   ((i++))
@@ -43,6 +45,12 @@ for arg in "$@"; do
       ;;
     -l=*) CLI_LANG="${arg#-l=}" ;;
     --lang=*) CLI_LANG="${arg#--lang=}" ;;
+    -p|--provider)
+      next_index=$((i+1))
+      CLI_PROVIDER="${!next_index}"
+      ;;
+    -p=*) CLI_PROVIDER="${arg#-p=}" ;;
+    --provider=*) CLI_PROVIDER="${arg#--provider=}" ;;
     *)
       # allow "weather en" (two-letter positional)
       if [[ -z "$CLI_LANG" && "${#arg}" -eq 2 && "$arg" =~ ^[a-zA-Z]{2}$ ]]; then
@@ -64,8 +72,9 @@ for arg in "$@"; do
       cat <<'USAGE'
 Usage: weather [options] [lang]
 Options:
-  -l, --lang <code>    Force language code (en, el, fr, ...)
-  -h, --help           Show this help and exit
+  -l, --lang <code>        Force language code (en, el, fr, ...)
+  -p, --provider <name>    Force provider (wttr or open-meteo)
+  -h, --help               Show this help and exit
 
 Shortcuts:
   weather.sh en           Equivalent to: weather.sh -l en
@@ -80,6 +89,8 @@ USAGE
       echo "🔧 Toggle wind units:   weather.sh wind_mode && weather.sh en"
       echo "🔧 Toggle provider:     weather.sh provider && weather.sh"
       echo "🔧 Toggle provider:     weather.sh provider && weather.sh en"
+      echo "⚡ Force provider:       weather.sh -p wttr"
+      echo "⚡ Force provider:       weather.sh --provider=open-meteo en"
       echo ""
       exit 0
       ;;
@@ -146,6 +157,18 @@ if [[ "$1" == "provider" ]]; then
 fi
 
 WEATHER_PROVIDER=$(<"$PROVIDER_STATEFILE")
+
+# --- Apply CLI provider override if provided ---
+if [[ -n "$CLI_PROVIDER" ]]; then
+  if [[ "$CLI_PROVIDER" == "wttr" || "$CLI_PROVIDER" == "open-meteo" ]]; then
+    WEATHER_PROVIDER="$CLI_PROVIDER"
+  else
+    if $TERMINAL_MODE; then
+      echo "⚠️  Invalid provider: '$CLI_PROVIDER'. Falling back to default: '$DEFAULT_PROVIDER'."
+    fi
+    WEATHER_PROVIDER="$DEFAULT_PROVIDER"
+  fi
+fi
 
 # --- 1) Weather code → emoji ---
 # Liberally spaced out to strictly prevent Bash parsing errors
