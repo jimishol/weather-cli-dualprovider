@@ -1,0 +1,6 @@
+[Unit]
+Description=Update hyprsunset config and restart service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/hypr/update-hyprsunset.sh

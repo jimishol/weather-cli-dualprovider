@@ -11,10 +11,10 @@
 - **Wind units**: **Beaufort**, **km/h**, and **knots** (displayed as **kt**).  
 - **Wind direction arrows** using a 16‑point compass.  
 - **Waybar JSON output** compatible with Waybar modules.  
+- **Interactive Waybar module**: **Left-click** to instantly toggle the weather provider, and **Right-click** to cycle through wind units (Beaufort, km/h, knots).
 - **CLI and lock screen friendly**: works in desktop Linux, Termux, TTY, SSH, Waybar, and Hyprland/hyprlock.  
 - **Forecast tooltip** with sunrise/sunset, min/max, feels like, and rain probability.  
 - **Per‑user persistent state** stored under **`~/.cache/weather`** by default.
-
 ---
 
 ## Requirements
@@ -34,7 +34,7 @@
 **Make script executable**
 - Ensure the script is executable:
 ```bash
-chmod +x /home/youruser/.config/waybar/scripts/weather/weather.sh
+chmod +x ~/.config/waybar/scripts/weather/weather.sh
 ```
 
 ---
@@ -97,15 +97,18 @@ variables as the English template.
 ---
 
 ## Waybar and Hyprland Integration
-**Waybar module example** (force English)
+**Waybar module example**
+
+*Tip: With the `on-click` actions below, **LMB** toggles the provider and **RMB** cycles wind units.*
+
 ```json
 "custom/weather": {
   "format": "{}",
   "interval": 600,
-  "exec": "WEATHER_LANG=en /home/youruser/.config/waybar/scripts/weather/weather.sh",
+  "exec": "~/.config/waybar/scripts/weather/weather.sh",
   "return-type": "json",
-  "on-click": "/home/youruser/.config/waybar/scripts/weather/weather.sh provider",
-  "on-click-right": "/home/youruser/.config/waybar/scripts/weather/weather.sh wind_mode"
+  "on-click": "~/.config/waybar/scripts/weather/weather.sh provider",
+  "on-click-right": "~/.config/waybar/scripts/weather/weather.sh wind_mode"
 }
 ```
 
@@ -124,7 +127,7 @@ variables as the English template.
 ```ini
 label {
     monitor =
-    text = cmd[update:600000] /home/youruser/.config/waybar/scripts/weather/weather.sh | jq -r '.text'
+    text = cmd[update:600000] ~/.config/waybar/scripts/weather/weather.sh | jq -r '.text'
     font_size = 20
     font_family = JetBrains Mono
     color = rgba(180,220,255,1.0)
@@ -135,42 +138,12 @@ label {
 ```
 
 ### Advanced Usage: Automating Screen Gamma (hyprsunset)
-Because the script outputs detailed text in the terminal, you can parse it to extract your local sunrise and sunset times. This is incredibly useful for dynamically generating configuration files for blue-light filters like `hyprsunset`.
 
-**Important:** You must force the **Open-Meteo** provider (`-p open-meteo`) for this parsing. Open-Meteo outputs time in the **24-hour format** (e.g., `18:26`) which is required by `hyprsunset`, whereas wttr.in uses the 12-hour format (e.g., `06:26 PM`).
+Because this script outputs detailed terminal text, you can parse it to extract your exact local sunrise (`🌅`) and sunset (`🌇`) times. 
 
-You can run a bash script on startup to fetch these times and generate a literal `hyprsunset.conf` file automatically:
+We have provided a complete example of how to use this feature to **dynamically generate a smooth, 1-hour day/night transition** for your screen's color temperature using `hyprsunset` and `systemd` timers.
 
-```bash
-#!/usr/bin/env bash
-
-# 1. Fetch times (forcing open-meteo for 24h format, and English for reliable parsing)
-WEATHER_SCRIPT="/home/youruser/.config/waybar/scripts/weather/weather.sh"
-SUNRISE=$("$WEATHER_SCRIPT" -p open-meteo -l en | grep -oP '🌅 \K[0-9:]+')
-SUNSET=$("$WEATHER_SCRIPT" -p open-meteo -l en | grep -oP '🌇 \K[0-9:]+')
-
-# Fallback values just in case the API fails or you have no internet on boot
-SUNRISE=${SUNRISE:-06:30}
-SUNSET=${SUNSET:-20:00}
-
-# 2. Generate the actual hyprsunset.conf file with literal time values
-cat <<EOF > ~/.config/hypr/hyprsunset.conf
-max-gamma = 100
-
-profile {
-    time = $SUNRISE
-    identity = true
-}
-
-profile {
-    time = $SUNSET
-    temperature = 4500
-    gamma = 0.8
-}
-EOF
-
-# Note: You can now launch hyprsunset, and it will read the newly created config!
-```
+👉 **[Check out the advanced hyprsunset automation guide and scripts here!](./examples/hyprsunset-automation/)**
 
 ---
 
@@ -180,17 +153,17 @@ EOF
 
 - **Show tooltip / Waybar JSON**
 ```bash
-/home/youruser/.config/waybar/scripts/weather/weather.sh
+~/.config/waybar/scripts/weather/weather.sh
 ```
 
 **Force a language with `WEATHER_LANG`**
 - **English**
 ```bash
-WEATHER_LANG=en /home/youruser/.config/waybar/scripts/weather/weather.sh
+WEATHER_LANG=en ~/.config/waybar/scripts/weather/weather.sh
 ```
 - **Greek**
 ```bash
-WEATHER_LANG=el /home/youruser/.config/waybar/scripts/weather/weather.sh
+WEATHER_LANG=el ~/.config/waybar/scripts/weather/weather.sh
 ```
 
 **Using CLI override (Language & Provider)**
@@ -211,11 +184,11 @@ You can force the script to use a specific language or provider for a single run
 **Toggling states**
 - **Toggle provider**
 ```bash
-/home/youruser/.config/waybar/scripts/weather/weather.sh provider
+~/.config/waybar/scripts/weather/weather.sh provider
 ```
 - **Cycle wind units**
 ```bash
-/home/youruser/.config/waybar/scripts/weather/weather.sh wind_mode
+~/.config/waybar/scripts/weather/weather.sh wind_mode
 ```
 
 **Auto provider switch on API error**  
