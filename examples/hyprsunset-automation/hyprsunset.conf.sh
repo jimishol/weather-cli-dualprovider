@@ -15,10 +15,14 @@ STEPS=6             # Number of steps (6 steps of 10 mins = 60 mins)
 STEP_MINS=$(( TRANSITION_MINS / STEPS ))
 
 # Define Day and Night target values
+# Tip: Setting exactly 6500 for TEMP and 1.00 for GAMMA will automatically 
+# output 'identity = true' to completely bypass the software shader during the day.
+# If you prefer a warmer screen all day (e.g. 5500), simply change DAY_TEMP 
+# and the filter will remain active.
 DAY_TEMP=6500
 DAY_GAMMA=1.00
 
-NIGHT_TEMP=4500
+NIGHT_TEMP=4000
 NIGHT_GAMMA=0.80
 
 CONF_FILE="$HOME/.config/hypr/hyprsunset.conf"
@@ -47,12 +51,13 @@ generate_transition() {
         echo "profile {" >> "$CONF_FILE"
         echo "    time = $cur_time" >> "$CONF_FILE"
         
-        # If it reaches full day targets, use identity
+        # Always output temperature and gamma so IPC sockets read the correct value
+        echo "    temperature = $cur_temp" >> "$CONF_FILE"
+        echo "    gamma = $cur_gamma" >> "$CONF_FILE"
+        
+        # If it reaches full day targets, add identity to completely bypass the color shader
         if [[ "$cur_temp" == "6500" && "$cur_gamma" == "1.00" ]]; then
             echo "    identity = true" >> "$CONF_FILE"
-        else
-            echo "    temperature = $cur_temp" >> "$CONF_FILE"
-            echo "    gamma = $cur_gamma" >> "$CONF_FILE"
         fi
         echo "}" >> "$CONF_FILE"
         echo "" >> "$CONF_FILE"
