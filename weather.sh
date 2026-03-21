@@ -440,21 +440,31 @@ else
 #   today_rain=$(jq -r '[.weather[0].hourly[].chanceofrain | tonumber] | max' <<<"$data")
 
   # --- rain-only fetch for wttr.in (minimal, uses local clock) ---
-  # compute next 3-hour block threshold using the user's local time
+  # safe hour/minute parsing
   now_h=$(date +%H); now_m=$(date +%M)
   now_h=$((10#$now_h)); now_m=$((10#$now_m))
-  next_block=$(( ((now_h + (now_m>0?1:0) + 2) / 3) * 3 ))
-  wttr_threshold=$(( next_block * 100 ))   # wttr times: 0,300,600,...,2100
   
+  # block that contains the current hour (0..7)
+  block_index=$(( now_h / 3 ))
+  if [ "$block_index" -gt 7 ]; then
+    block_index=7
+  fi
+  
+  # wttr times: 0,300,600,...,2100
+  wttr_threshold=$(( block_index * 300 ))
+
   # rain-only fetch for wttr.in (today-only, non-invasive)
   data_rain_wttr=$(curl -sL --connect-timeout 5 --max-time 10 "https://wttr.in/${ENCODED_LOC}?format=j1&lang=${WTTR_LANG}")
   
   if [[ -n "$data_rain_wttr" ]]; then
-    wttr_future_max=$(jq -r --argjson th "$wttr_threshold" '
-      def root: (if type=="array" then .[0] else . end);
-      ( [ (root.weather[0].hourly[]? | select((.time|tonumber) >= $th) | .chanceofrain | tonumber) ]
-        | if length>0 then max else "?" end )
-    ' <<<"$data_rain_wttr")
+  wttr_future_max=$(jq -r --argjson th "$wttr_threshold" '
+    def root: (if type=="array" then .[0] else . end);
+    root
+    | .weather[0].hourly
+    | map(select((.time | tonumber) >= $th and (.time | tonumber) <= 2100))
+    | map(.chanceofrain | tonumber? // empty)
+    | if length == 0 then "?" else (max | floor) end
+  ' <<<"$data_rain_wttr")
   
     if [[ "$wttr_future_max" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
       wttr_future_max=${wttr_future_max%.*}
