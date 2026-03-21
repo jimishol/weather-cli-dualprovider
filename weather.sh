@@ -289,29 +289,41 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
 #   today_rain=$(jq -r '.daily.precipitation_probability_max[0] // 0' <<<"$data")
 
   # Fetch a separate copy in UTC with hourly precipitation_probability
-  data_rain_open=$(curl -s --connect-timeout 5 --max-time 10 \
-    "https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=precipitation_probability,precipitation&daily=precipitation_probability_max&timezone=UTC&forecast_days=${TOTAL_DAYS}")
+
+  # --- rain-only fetch from Open‑Meteo (hourly, today-only, local-time, non-invasive) ---
+  data_rain_open=$(curl -sS --fail --connect-timeout 5 --max-time 10 \
+    "https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=precipitation_probability,precipitation&timezone=auto&forecast_days=${TOTAL_DAYS}" 2>/dev/null) || data_rain_open=""
   
-  # If fetch failed, fallback to existing daily value already in $data
   if [[ -z "$data_rain_open" ]]; then
-    today_rain=$(jq -r '.daily.precipitation_probability_max[0] // 0' <<<"$data")
+    # fallback to existing daily value already in $data (today)
+    today_rain=$(jq -r '.daily.precipitation_probability_max[0] // "?"' <<<"$data")
   else
-    # Compute current hour in UTC from the user's machine clock
-    now_utc=$(date -u +%Y-%m-%dT%H:00:00)
+    # now in local timezone and date prefix for matching the local day
+    now_local=$(date +%Y-%m-%dT%H:00:00)
+    now_date=$(date +%Y-%m-%d)
   
-    # Max hourly precipitation_probability from now (UTC) to end of today (UTC)
-    open_meteo_future_max=$(jq -r --arg now "$now_utc" '
-      ( [ range(0; (.hourly.time|length)) as $i
-          | select(.hourly.time[$i] >= $now and (.hourly.time[$i] | startswith($now[:10])))
-          | .hourly.precipitation_probability[$i]
-          | tonumber
-        ] | if length>0 then max else ( .daily.precipitation_probability_max[0] // 0 ) end )
+    open_meteo_future_max=$(jq -r --arg now "$now_local" --arg now_date "$now_date" '
+      def root: (if type=="array" then .[0] elif type=="object" then . else . end);
+      def times: (root.hourly.time // []);
+      def probs: (root.hourly.precipitation_probability // []);
+  
+      # collect hourly probabilities for indices where time >= now and same local date
+      ( [ range(0; (times|length)) as $i
+          | select( (times[$i] // "") >= $now and ((times[$i] // "") | startswith($now_date)) )
+          | (probs[$i] // "0") | tonumber
+        ]
+        | if length>0 then max else "?" end )
     ' <<<"$data_rain_open")
   
-    # numeric fallback and assignment
-    open_meteo_future_max=${open_meteo_future_max:-0}
-    today_rain=$((open_meteo_future_max + 0))
+    # keep numeric values numeric, otherwise preserve "?"
+    if [[ "$open_meteo_future_max" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      open_meteo_future_max=${open_meteo_future_max%.*}
+      today_rain=$open_meteo_future_max
+    else
+      today_rain="$open_meteo_future_max"   # "?" sentinel
+    fi
   fi
+
 # --- END of rain-only fetch from Open‑Meteo ---
 
   # Forecast mapped to Min/Max, Max Feeling, and Rain Probability
@@ -434,32 +446,24 @@ else
   next_block=$(( ((now_h + (now_m>0?1:0) + 2) / 3) * 3 ))
   wttr_threshold=$(( next_block * 100 ))   # wttr times: 0,300,600,...,2100
   
-  # fetch a separate rain-only JSON (keeps main $data untouched)
+  # rain-only fetch for wttr.in (today-only, non-invasive)
   data_rain_wttr=$(curl -sL --connect-timeout 5 --max-time 10 "https://wttr.in/${ENCODED_LOC}?format=j1&lang=${WTTR_LANG}")
   
-  # normalize if nested under .data
-  if [[ -n "$data_rain_wttr" ]]; then
-    data_rain_wttr=$(jq 'if type == "object" and .data then .data else . end' <<<"$data_rain_wttr")
-  fi
-  
-  # compute future max chanceofrain from next_block..end of today; fallback to max of all hourly entries
   if [[ -n "$data_rain_wttr" ]]; then
     wttr_future_max=$(jq -r --argjson th "$wttr_threshold" '
-      ( [ .weather[0].hourly[]
-          | select((.time|tonumber) >= $th)
-          | .chanceofrain
-          | tonumber
-        ] | if length>0 then max else ( [ .weather[0].hourly[].chanceofrain | tonumber ] | max ) end
-      )' <<<"$data_rain_wttr")
-    wttr_future_max=$((wttr_future_max + 0))
-  else
-    # if rain-only fetch failed, preserve original behaviour (max of all hourly entries from $data)
-    wttr_future_max=$(jq -r '[.weather[0].hourly[].chanceofrain | tonumber] | max' <<<"$data")
-    wttr_future_max=$((wttr_future_max + 0))
-  fi
+      def root: (if type=="array" then .[0] else . end);
+      ( [ (root.weather[0].hourly[]? | select((.time|tonumber) >= $th) | .chanceofrain | tonumber) ]
+        | if length>0 then max else "?" end )
+    ' <<<"$data_rain_wttr")
   
-  # set today_rain from wttr only (provider-respecting)
-  today_rain=$wttr_future_max
+    if [[ "$wttr_future_max" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      wttr_future_max=${wttr_future_max%.*}
+      today_rain=$wttr_future_max
+    else
+      today_rain="$wttr_future_max"   # "?" sentinel
+    fi
+  fi
+
 # --- END of rain-only fetch for wttr.in ---
 
   # Forecast mapped to Min/Max, Midday Feeling, and Rain Probability
