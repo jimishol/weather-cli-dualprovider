@@ -108,6 +108,9 @@ else
   source "$LOCALE_DIR/weather.en"
 fi
 
+# Rain display helper: prefer icon if set, otherwise fall back to localized text
+RAIN_DISPLAY="${LABEL_RAIN_ICON:-$LABEL_RAIN}"
+
 TERMINAL_MODE=false
 if [[ -t 1 ]]; then
   TERMINAL_MODE=true
@@ -359,8 +362,8 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
 	    ;;
 	esac
 
-        printf "%s: %s %s %s°-%s° (👤%s°C) ☔ %s%% %s %s\n" \
-          "$day_fmt" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$rain" "$wind_disp" "$(arrow_for_dir "$dir")"
+        printf "%s: %s %s %s°-%s° (👤%s°C) %s %s%% %s %s\n" \
+          "$day_fmt" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$RAIN_DISPLAY" "$rain" "$(arrow_for_dir "$dir")" "$wind_disp"
       done
   )
 
@@ -509,8 +512,8 @@ else
           ;;
       esac
 
-      printf "%s: %s %s %s°-%s° (👤%s°C) ☔ %s%% %s %s\n" \
-          "$day" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$rain" "$wind_disp" "$(arrow_for_dir "$d")"
+      printf "%s: %s %s %s°-%s° (👤%s°C) %s %s%% %s %s\n" \
+          "$day" "$desc" "$(icon_for_code "$code")" "$tmin" "$tmax" "$tfeel" "$RAIN_DISPLAY" "$rain" "$(arrow_for_dir "$d")" "$wind_disp"
       done
   )
 
@@ -532,20 +535,20 @@ case "$mode" in
     ;;
 esac
 
-text="$(icon_for_code "$cur_code") ${cur_temp}°C $wind_display $(arrow_for_dir "$cur_dir")"
+text="$(icon_for_code "$cur_code") ${cur_temp}°C $(arrow_for_dir "$cur_dir") $wind_display"
 
 # --- 7) Build tooltip ---
 # Contains Min-Max, Feeling, and Rain probability for today ONLY.
 tooltip=$(
 
-    printf "🌅 %s - 🌇 %s | %s %s\n" \
+    printf "🌅 %s - 🌇 %s %s %s\n" \
     "$sunrise" \
     "$sunset" \
     "$(icon_for_code "$cur_code")" \
     "$cur_desc"
     
-    printf "🌡️ %s°C-%s°C (%s: %s°C) | %s %s%% | %s %s\n" \
-      "$today_min" "$today_max" "$LABEL_FEELS" "$cur_feels" "$LABEL_RAIN" "$today_rain" "$wind_display" "$(arrow_for_dir "$cur_dir")"
+    printf "🌡️ %s°C-%s°C (%s: %s°C) %s %s%% %s %s\n" \
+      "$today_min" "$today_max" "$LABEL_FEELS" "$cur_feels" "$RAIN_DISPLAY" "$today_rain" "$(arrow_for_dir "$cur_dir")" "$wind_display"
 
   echo ""  
 

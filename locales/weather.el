@@ -36,11 +36,17 @@ declare -A DESC_FOR_WMO=(
   [99]="Καταιγίδα με μεγάλο χαλάζι"
 )
 
-# Localized static labels used in tooltip and messages
+# Τοπικοποιημένες στατικές ετικέτες που χρησιμοποιούνται σε tooltip και μηνύματα
 LABEL_SUNRISE="Ανατολή"
 LABEL_SUNSET="Δύση"
 LABEL_FEELS="Αίσθηση"
+
+# Κανoνική κειμενική ετικέτα για τη βροχή (χρησιμοποιείται ως fallback για προσβασιμότητα)
 LABEL_RAIN="Βροχή"
+# Προεπιλεγμένο ορατό σύμβολο για compact εμφανίσεις· οι μεταφραστές μπορούν να το αλλάξουν.
+# Ορίστε ένα emoji, π.χ. "☔", αν προτιμάτε εικονίδιο στις συμπαγείς προβολές.
+LABEL_RAIN_ICON="☔"
+
 LABEL_PROVIDER_WTTR="wttr.in"
 LABEL_PROVIDER_OPENMETEO="Open‑Meteo"
 LABEL_UNKNOWN="Άγνωστο"

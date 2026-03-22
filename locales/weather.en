@@ -41,7 +41,14 @@ declare -A DESC_FOR_WMO=(
 LABEL_SUNRISE="Sunrise"
 LABEL_SUNSET="Sunset"
 LABEL_FEELS="Feels like"
+
+# Localized static labels used in tooltip and messages
+# Canonical textual label for rain (used as fallback for accessibility)
 LABEL_RAIN="Rain"
+# Default visible rain glyph for compact displays; translators may change it.
+# Set to an emoji like "☔" if you prefer an icon in compact views.
+LABEL_RAIN_ICON="☔"
+
 LABEL_PROVIDER_WTTR="wttr.in"
 LABEL_PROVIDER_OPENMETEO="Open‑Meteo"
 LABEL_UNKNOWN="Unknown"
