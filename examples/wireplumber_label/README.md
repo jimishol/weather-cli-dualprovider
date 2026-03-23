@@ -60,6 +60,13 @@ Add this to your `~/.config/waybar/config` under the modules you want:
 
 ---
 
+### About PipeWire filter‑chain convolver
+The script itself does **not** install or require any PipeWire filter; it only reads PipeWire/WirePlumber state and labels sinks for Waybar. It is useful when you run a **PipeWire filter‑chain convolver** (a virtual sink) because that setup can cause sinks to be misclassified or collapsed. 
+
+**Important:** a filter‑chain convolver performs convolution and resampling in software and can be CPU‑intensive. On low‑power systems or with heavy sources (for example large MIDI soundfonts or many simultaneous streams) you may see audio jitter, dropouts, or increased latency. If you suspect the filter is causing problems, change the default sink to a hardware (non‑filtered) sink and move active streams to it.
+
+---
+
 ### Troubleshooting notes
 - Behavior may vary across PipeWire and WirePlumber versions; this script is a pragmatic workaround for misclassified sinks.  
 - If device classification looks wrong, run `pactl list sinks`, compare its output to what the script inspects.
