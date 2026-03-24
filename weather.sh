@@ -9,6 +9,8 @@ DEFAULT_PROVIDER="wttr"
 DEFAULT_WIND="bft"
 
 # How many FUTURE days to show in the tooltip? (Open-Meteo only. wttr.in max is 2)
+# MAX_FORECAST=15: one day below Open‑Meteo's 16‑day limit to avoid endpoint/model edge‑case errors (e.g., identical zero fields).
+MAX_FORECAST=15
 FORECAST_DAYS=3
 
 # Coordinates for Open-Meteo (Default: Chios, Greece)
@@ -65,6 +67,34 @@ if [[ -n "$CLI_LANG" ]]; then
 fi
 # --- end CLI override ---
 
+# --- CLI: accept forecast days as -f N, --forecast=N or numeric positional (e.g. "weather.sh en 8") ---
+CLI_FORECAST=""
+i=0
+for arg in "$@"; do
+  ((i++))
+  case "$arg" in
+    -f|--forecast)
+      next_index=$((i+1))
+      CLI_FORECAST="${!next_index}"
+      ;;
+    -f=*) CLI_FORECAST="${arg#-f=}" ;;
+    --forecast=*) CLI_FORECAST="${arg#--forecast=}" ;;
+    *)
+      # numeric positional (e.g. "weather.sh en 8")
+      if [[ -z "$CLI_FORECAST" && "$arg" =~ ^[0-9]+$ ]]; then
+        CLI_FORECAST="$arg"
+      fi
+      ;;
+  esac
+done
+
+# If provided, override FORECAST_DAYS (validated/clamped later)
+if [[ -n "$CLI_FORECAST" ]]; then
+  FORECAST_DAYS="$CLI_FORECAST"
+fi
+# --- end forecast CLI ---
+
+
 # --- HELP block start ---
 for arg in "$@"; do
   case "$arg" in
@@ -75,8 +105,11 @@ Options:
   -l, --lang <code>        Force language code (en, el, fr, ...)
   -p, --provider <name>    Force provider (wttr or open-meteo)
   -h, --help               Show this help and exit
+  -f, --forecast <N>       Show N future days in tooltip (Open‑Meteo only)
 
 Shortcuts:
+  weather.sh en 8         Language en, 8 forecast days
+  weather.sh -f 8         8 forecast days
   weather.sh en           Equivalent to: weather.sh -l en
   weather.sh provider     Toggle provider
   weather.sh wind_mode    Toggle wind units
@@ -89,8 +122,8 @@ USAGE
       echo "🔧 Toggle wind units:   weather.sh wind_mode && weather.sh en"
       echo "🔧 Toggle provider:     weather.sh provider && weather.sh"
       echo "🔧 Toggle provider:     weather.sh provider && weather.sh en"
-      echo "⚡ Force provider:       weather.sh -p wttr"
-      echo "⚡ Force provider:       weather.sh --provider=open-meteo en"
+      echo "⚡ Force provider:      weather.sh -p wttr"
+      echo "⚡ Force provider:      weather.sh --provider=open-meteo en"
       echo ""
       exit 0
       ;;
@@ -239,6 +272,10 @@ kmh_to_knots() {
 if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
   
   # Calculate total days required by Open-Meteo API (Today + FORECAST_DAYS)
+  if [ "$FORECAST_DAYS" -gt "$MAX_FORECAST" ]; then
+    >&2 echo "Requested FORECAST_DAYS ($FORECAST_DAYS) exceeds MAX_FORECAST ($MAX_FORECAST); using $MAX_FORECAST."
+    FORECAST_DAYS=$MAX_FORECAST
+  fi
   TOTAL_DAYS=$((FORECAST_DAYS + 1))
 
   URL="https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,sunrise,sunset,temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant&timezone=Europe%2FAthens&forecast_days=${TOTAL_DAYS}"
