@@ -179,6 +179,13 @@ You can force the script to use a specific language or provider for a single run
 
 # Combine both
 ./weather.sh -p open-meteo en
+
+# Forecast flag
+./weather.sh -f 8            # show 8 future days (Open‑Meteo only)
+./weather.sh --forecast=5    # same, using long form
+# numeric positional also supported:
+./weather.sh en 8            # language en, 8 forecast days
+
 ```
 
 **Toggling states**
