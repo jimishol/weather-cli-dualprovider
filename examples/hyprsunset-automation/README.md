@@ -30,3 +30,15 @@ This example uses `weather.sh` to fetch exact sunrise and sunset times (in 24h f
    systemctl --user enable --now update-hyprsunset.timer
    ```
    *(Note: The timer will automatically run the script in the background every night, fetching the new times for the upcoming day and reloading the config).*
+
+### Optional Midday brightness boost
+
+You can provide a click-to-toggle daylight profile that restarts hyprsunset with stronger gamma/temperature for bright midday conditions. Place this in your bar's Backlight or display-control module.
+
+Example:
+```json
+"on-click": "/bin/sh -c '/usr/bin/pkill -x hyprsunset >/dev/null 2>&1; sleep 2; setsid /usr/bin/hyprsunset --gamma_max 100 >/dev/null 2>&1 &'",
+"on-click-right": "/bin/sh -c '/usr/bin/pkill -x hyprsunset >/dev/null 2>&1; sleep 2; setsid /usr/bin/hyprsunset --gamma_max 175 --gamma 175 --temperature 6500 >/dev/null 2>&1 &'"
+```
+
+*(Note: adjust the hyprsunset path if needed and tweak --gamma_max, --gamma, and --temperature to taste).*
