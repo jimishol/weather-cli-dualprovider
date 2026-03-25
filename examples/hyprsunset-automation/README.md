@@ -43,16 +43,16 @@ You can add click‑to‑toggle actions that restart `hyprsunset` with a brighte
 
 **Recommended Waybar handlers**
 ```json
-"on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh OFF",
-"on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 175",
+"on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
+"on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
 "on-scroll-up": "brightnessctl set +5%",
 "on-scroll-down": "brightnessctl set 5%-"
 ```
 
 **Notes**
-- The toggle script reads the low value (`max-gamma`) from your `hyprsunset.conf` (fallback `100`) and uses an environment variable `BOOST_BRIGHT` (default `175`) unless a numeric argument is provided.
+- The toggle script reads the low value (`max-gamma`) from your `hyprsunset.conf` (fallback `100`) and uses an environment variable `BOOST_BRIGHT` (default **145**) unless a numeric argument is provided.
 - The script uses a short, non‑blocking wait loop (small `usleep` intervals) instead of a fixed `sleep` to ensure `hyprsunset` has exited before restarting it.
-- Use BOOST when the hardware maximum brightness still seems dim; use OFF to kill hyprsunset for true‑color movie watching at night.
+- Use **BOOST** when the hardware maximum brightness still seems dim; use **ON_OFF** to kill hyprsunset for true‑color movie watching at night.
 ---
 
 ### Click behavior and state model
@@ -60,10 +60,10 @@ You can add click‑to‑toggle actions that restart `hyprsunset` with a brighte
 This setup uses a simple three‑state model stored in a state file (e.g., `/tmp/hyprsunset_state`):
 
 - **NORMAL** — `hyprsunset` running with time profiles (default).
-- **BOOST** — `hyprsunset` running with a forced brighter profile (e.g., `--gamma_max 175`).
-- **OFF** — user‑forced kill of `hyprsunset` for true color (movie mode).
+- **BOOST** — `hyprsunset` running with a forced brighter profile (e.g., `--gamma_max 145`).
+- **ON_OFF** — user‑toggle forced kill of `hyprsunset` for true color (movie mode) and normal hyprsunset.
 
-**Important UX detail (minimal change):** when you force OFF via the left‑click handler, the toggle script writes **`NORMAL`** into the state file. This makes the next right‑click immediately start **BOOST** (no dead click where OFF and NORMAL look identical during daytime). The left‑click still kills `hyprsunset` so the screen is truly off from hyprsunset’s control, but the stored state is set to NORMAL to keep the toggle responsive.
+**Important UX detail (minimal change):** when you kill hyprsunset via the left‑click handler, the toggle script writes **`NORMAL`** into the state file. This makes the next right‑click immediately start **BOOST** (no dead click where OFF and NORMAL look identical during daytime). The left‑click still kills `hyprsunset` so the screen is truly off from hyprsunset’s control, but the stored state is set to NORMAL to keep the toggle responsive.
 
 ---
 
@@ -71,7 +71,7 @@ This setup uses a simple three‑state model stored in a state file (e.g., `/tmp
 
 - **Waybar config snippet** (use the handlers shown above):
 ```json
-"on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh OFF",
-"on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 175",
+"on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
+"on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
 ```
-- **Toggle script**: `~/.config/waybar/scripts/toggle-hyprsunset.sh` (keeps state in `/tmp/hyprsunset_state`, reads `max-gamma` from `~/.config/hypr/hyprsunset.conf`, accepts `OFF`, `NORMAL`, or a numeric boost argument, and uses `BOOST_BRIGHT` env var as default).
+- **Toggle script**: `~/.config/waybar/scripts/toggle-hyprsunset.sh` (keeps state in `/tmp/hyprsunset_state`, reads `max-gamma` from `~/.config/hypr/hyprsunset.conf`, accepts `ON_OFF`, `NORMAL`, or a numeric boost argument, and uses `BOOST_BRIGHT` env var as default).

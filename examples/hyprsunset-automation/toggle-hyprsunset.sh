@@ -15,12 +15,12 @@ LOW_GAMMA="${LOW_GAMMA:-100}"
 # -----------------------------------------
 # Determine boost value
 # -----------------------------------------
-BOOST_BRIGHT="${BOOST_BRIGHT:-175}"
+BOOST_BRIGHT="${BOOST_BRIGHT:-145}"
 
 # If user passed a numeric argument, override boost
 case "$1" in
     '' ) ;;  # no argument, normal toggle
-    OFF ) FORCE_OFF=1 ;;
+    ON_OFF ) FORCE_ON_OFF=1 ;;
     NORMAL ) FORCE_NORMAL=1 ;;
     * )
         # numeric?
@@ -51,10 +51,16 @@ kill_hyprsunset() {
 LAST_STATE="$(cat "$STATE_FILE" 2>/dev/null)"
 
 # -----------------------------------------
-# Forced OFF
+# Forced ON_OFF (toggle between kill and normal launch)
 # -----------------------------------------
-if [ "$FORCE_OFF" = "1" ]; then
-    kill_hyprsunset
+if [ "$FORCE_ON_OFF" = "1" ]; then
+    if pgrep -x hyprsunset >/dev/null 2>&1; then
+        # running -> kill
+        kill_hyprsunset
+    else
+        # not running -> launch normal
+        setsid /usr/bin/hyprsunset --gamma_max "$LOW_GAMMA" >/dev/null 2>&1 &
+    fi
     echo "NORMAL" > "$STATE_FILE"
     exit 0
 fi
@@ -73,8 +79,8 @@ fi
 # Automatic toggle logic
 # -----------------------------------------
 case "$LAST_STATE" in
-    OFF )
-        # OFF → BOOST
+    ON_OFF )
+        # ON_OFF (legacy/alternate) → BOOST
         kill_hyprsunset
         setsid /usr/bin/hyprsunset --gamma_max "$BOOST_BRIGHT" --gamma "$BOOST_BRIGHT" --temperature 6500 >/dev/null 2>&1 &
         echo "BOOST" > "$STATE_FILE"
