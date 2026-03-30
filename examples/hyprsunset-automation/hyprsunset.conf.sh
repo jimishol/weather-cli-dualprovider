@@ -22,8 +22,8 @@ STEP_MINS=$(( TRANSITION_MINS / STEPS ))
 DAY_TEMP=6500
 DAY_GAMMA=1.00
 
-NIGHT_TEMP=4000
-NIGHT_GAMMA=0.80
+NIGHT_TEMP=3500
+NIGHT_GAMMA=0.75
 
 CONF_FILE="$HOME/.config/hypr/hyprsunset.conf"
 
@@ -73,6 +73,10 @@ generate_transition "$SUNRISE" $NIGHT_TEMP $NIGHT_GAMMA $DAY_TEMP $DAY_GAMMA
 generate_transition "$SUNSET" $DAY_TEMP $DAY_GAMMA $NIGHT_TEMP $NIGHT_GAMMA
 
 # 5. Restart hyprsunset via Hyprland IPC
-killall hyprsunset
-sleep 1
-hyprctl dispatch exec hyprsunset
+if hyprctl monitors >/dev/null 2>&1; then
+    killall hyprsunset 2>/dev/null
+    sleep 1
+    hyprctl dispatch exec hyprsunset
+else
+    echo "Hyprland not running — skipping hyprsunset restart."
+fi
