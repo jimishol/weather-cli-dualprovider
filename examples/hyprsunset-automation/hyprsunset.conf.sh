@@ -77,6 +77,4 @@ if hyprctl monitors >/dev/null 2>&1; then
     killall hyprsunset 2>/dev/null
     sleep 1
     hyprctl dispatch exec hyprsunset
-else
-    echo "Hyprland not running — skipping hyprsunset restart."
 fi
