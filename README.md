@@ -55,14 +55,14 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 - **LAT** and **LON** — coordinates for Open‑Meteo queries.
 - **LOCATION** — location for wttr.in (city name in English or "lat,lon"; default: Chios, Greece).
 - **DATE_FORMAT** — Visual style (e.g., `"%a %d"` for **Fri 03**).
-- **DATE_LOCALE** — System locale for day names (e.g., `"el_GR.UTF-8"`).
+- **DATE_LOCALE** — Leave empty for Smart Auto-Discovery (matches language automatically).
 
 | Format | Output Example |
 | :--- | :--- |
 | `"%a %d"` | **Fri 03** / **Παρ 03** (Compact) |
 | `"%d-%m-%Y"` | **03-04-2026** (Full) |
 
-> **Tip:** If dates ignore your language setting, ensure the locale is generated on your system (`locale -a`) and set **DATE_LOCALE** explicitly.
+> **Note:** The script automatically finds the best UTF-8 locale (e.g., el_GR.UTF-8) based on your language. If dates appear as ???, ensure that specific locale is generated on your system (locale -a).
 
 ### Locale files
 
