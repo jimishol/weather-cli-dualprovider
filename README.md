@@ -20,10 +20,7 @@
 ## Requirements
 
 - **bash** (POSIX shell compatible)
-- **curl**
-- **jq**
-- **awk**
-- **locale** (standard on most Linux distros; used for auto-discovery)
+- **curl, jq, awk**
 - **GNU date** (coreutils date; macOS users may need `gdate` from coreutils)
 - **Optional**: Waybar for JSON module integration
 
@@ -56,7 +53,6 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 - **LAT** and **LON** — coordinates for Open‑Meteo queries.
 - **LOCATION** — location for wttr.in (city name in English or "lat,lon"; default: Chios, Greece).
 - **DATE_FORMAT** — Visual style (e.g., `"%a %d"` for **Fri 03**).
-- **DATE_LOCALE** — Leave empty for Smart Auto-Discovery (matches language automatically).
 
 | Format | Output Example |
 | :--- | :--- |
@@ -67,7 +63,7 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 
 ### Locale files
 
-Locale files live in `locales/` and are named `weather.<lang>`. The script derives **WEATHER_LANG** from your `LANG` environment (first two characters) and falls back to `en` if unset.
+Locale files live in `locales/` and are named `weather.<lang>`. The script derives **LANG** from your `LANG` environment (first two characters) and falls back to `en` if unset.
 
 **Each locale file must provide**
 - **`declare -A DESC_FOR_WMO=(...)`** — map WMO weather codes to localized short descriptions.  
@@ -76,7 +72,7 @@ Locale files live in `locales/` and are named `weather.<lang>`. The script deriv
 
 **Provider behavior**
 - **Open‑Meteo**: returns numeric WMO codes only; the script **relies on `DESC_FOR_WMO`** to produce human text.  
-- **wttr.in**: may return localized `lang_xx` fields; the script **prefers `lang_${WEATHER_LANG}`**, falls back to `weatherDesc` (English), then to `DESC_FOR_WMO` / `LABEL_UNKNOWN`.
+- **wttr.in**: may return localized `lang_xx` fields; the script **prefers `lang_${LANG}`**, falls back to `weatherDesc` (English), then to `DESC_FOR_WMO` / `LABEL_UNKNOWN`.
 
 **Tip**
 - Name locale files using the two‑letter code the script derives (for example `weather.en`, `weather.el`) so they are picked up automatically.
@@ -90,18 +86,18 @@ No script changes are required — the script automatically detects and loads an
 variables as the English template.
 
 > **Note about toggle commands**  
-> The `provider` and `wind_mode` commands only change internal state files and do not print weather text. They do **not** use `WEATHER_LANG` or locale files. If you chain a toggle with a display call, remember the temporary env prefix applies only to the simple command it precedes. Example:
+> The `provider` and `wind_mode` commands only change internal state files and do not print weather text. They do **not** use `LANG` or locale files. If you chain a toggle with a display call, remember the temporary env prefix applies only to the simple command it precedes. Example:
 > ```bash
 > # toggle provider (no localization needed)
-> # The script derives WEATHER_LANG from the environment (WEATHER_LANG → LANG → en).
+> # The script derives LANG from the environment (LANG → LANG → en).
 > weather.sh provider
 >
 > # force weather in English (language matters here)
-> WEATHER_LANG=en weather.sh
+> LANG=en weather.sh
 > weather.sh en
 >
 > # or force English for chained calls
-> # Toggles do not produce localized output — set `WEATHER_LANG` only for display invocations.
+> # Toggles do not produce localized output — set `LANG` only for display invocations.
 > weather.sh provider && weather.sh -l en
 > ```
 ---
@@ -166,14 +162,14 @@ We have provided a complete example of how to use this feature to **dynamically 
 ~/.config/waybar/scripts/weather/weather.sh
 ```
 
-**Force a language with `WEATHER_LANG`**
+**Force a language with `LANG`**
 - **English**
 ```bash
-WEATHER_LANG=en ~/.config/waybar/scripts/weather/weather.sh
+LANG=en ~/.config/waybar/scripts/weather/weather.sh
 ```
 - **Greek**
 ```bash
-WEATHER_LANG=el ~/.config/waybar/scripts/weather/weather.sh
+LANG=el ~/.config/waybar/scripts/weather/weather.sh
 ```
 
 **Using CLI override (Language & Provider)**

@@ -23,20 +23,11 @@ LOCATION="Chios"
 # Date format for the forecast (e.g., "%a %d" for "Fri 03" or "%d-%m-%Y" for "03-04-2026")
 DATE_FORMAT="%a %d"
 
-# Specific locale for date names. If empty, it uses the system default.
-# Example: "el_GR.UTF-8" or "en_US.UTF-8"
-DATE_LOCALE=""
-
 # --- END OF CONFIG ---
 
 for cmd in bash curl jq awk date; do
   command -v "$cmd" >/dev/null || { echo "Missing dependency: $cmd"; exit 1; }
 done
-
-# Localization loading
-WEATHER_LANG="${WEATHER_LANG:-${LANG%%.*}}"
-WEATHER_LANG="${WEATHER_LANG:0:2}"
-WEATHER_LANG="${WEATHER_LANG:-en}"
 
 # --- CLI override for language and provider (minimal) ---
 CLI_LANG=""
@@ -70,34 +61,21 @@ for arg in "$@"; do
 done
 
 if [[ -n "$CLI_LANG" ]]; then
-  WEATHER_LANG="${CLI_LANG:0:2}"
-fi
-
-# Logic to determine the best locale for the 'date' command
-# --- Universal Locale Discovery (Termux Compatible) ---
-if [[ -n "$DATE_LOCALE" ]]; then
-    USE_LOCALE="$DATE_LOCALE"
-elif [[ -n "$WEATHER_LANG" ]]; then
-    # Only attempt locale discovery if the 'locale' command exists (e.g., Desktop Linux)
-    if command -v locale >/dev/null 2>&1; then
-        MATCHING_LOCALE=$(locale -a | grep -i "^${WEATHER_LANG}" | grep -i "utf" | sort | head -n 1)
-        [[ -z "$MATCHING_LOCALE" ]] && MATCHING_LOCALE=$(locale -a | grep -i "^${WEATHER_LANG}" | head -n 1)
-        USE_LOCALE="${MATCHING_LOCALE:-$LANG}"
+    # 1. If the user provided EXACTLY 2 letters (e.g., "el")
+    if [[ "${#CLI_LANG}" -eq 2 ]]; then
+        USE_LOCALE="${CLI_LANG}_${CLI_LANG^^}.UTF-8"
+    # 2. If the user provided a full string (e.g., "el_GR.UTF-8"), keep it!
     else
-        # Fallback for Termux/minimal systems: use LANG if it matches the requested lang
-        if [[ "$LANG" == "${WEATHER_LANG}"* ]]; then
-            USE_LOCALE="$LANG"
-        else
-            USE_LOCALE="en_US.UTF-8"
-        fi
+        USE_LOCALE="$CLI_LANG"
     fi
 else
+    # 3. No CLI arg? Use system $LANG or default
     USE_LOCALE="${LANG:-en_US.UTF-8}"
 fi
 
-: "${USE_LOCALE:=en_US.UTF-8}"
-
-# --- end CLI override ---
+# Always extract the first two letters for your internal file loading
+# (Works for "el", "el_GR.UTF-8", and "el_EL.UTF-8" alike)
+WEATHER_LANG="${USE_LOCALE:0:2}"
 
 # --- CLI: accept forecast days as -f N, --forecast=N or numeric positional (e.g. "weather.sh en 8") ---
 CLI_FORECAST=""
@@ -161,6 +139,7 @@ USAGE
       ;;
   esac
 done
+
 # --- HELP block end ---
 
 LOCALE_DIR="${LOCALE_DIR:-$(dirname "$0")/locales}"
@@ -171,6 +150,7 @@ if [[ -f "$LOCALE_DIR/weather.${WEATHER_LANG}" ]]; then
 else
   # shellcheck source=/dev/null
   source "$LOCALE_DIR/weather.en"
+  WEATHER_LANG="en"  # <--- ADD THIS LINE
 fi
 
 # Rain display helper: prefer icon if set, otherwise fall back to localized text
@@ -244,7 +224,7 @@ declare -A ICON_FOR_CODE=(
   [0]="☀️" [1]="⛅️" [2]="⛅️" [3]="☁️"
   [45]="🌫" [48]="🌫"
   [51]="🌦️" [53]="🌧️" [55]="🌧️" [56]="🌧️" [57]="🌧️"
-  [61]="🌧️" [63]="🌧️" [65]="🌧️" [66]="🌧️"[67]="🌧️"
+  [61]="🌧️" [63]="🌧️" [65]="🌧️" [66]="🌧️" [67]="🌧️"
   [71]="🌨️" [73]="🌨️" [75]="❄️" [77]="❄️"
   [80]="🌧️" [81]="🌧️" [82]="🌧️" [85]="🌨️" [86]="❄️"
   [95]="⛈" [96]="⛈" [99]="⛈" [113]="☀️" [116]="⛅️" [119]="☁️" [122]="☁️"
