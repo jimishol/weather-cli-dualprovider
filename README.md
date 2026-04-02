@@ -23,6 +23,7 @@
 - **curl**
 - **jq**
 - **awk**
+- **locale** (standard on most Linux distros; used for auto-discovery)
 - **GNU date** (coreutils date; macOS users may need `gdate` from coreutils)
 - **Optional**: Waybar for JSON module integration
 
@@ -62,7 +63,7 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 | `"%a %d"` | **Fri 03** / **Παρ 03** (Compact) |
 | `"%d-%m-%Y"` | **03-04-2026** (Full) |
 
-> **Note:** The script automatically finds the best UTF-8 locale (e.g., el_GR.UTF-8) based on your language. If dates appear as ???, ensure that specific locale is generated on your system (locale -a).
+> **Note:** The script auto-discovers the best UTF-8 locale (e.g., el_GR.UTF-8) for your language. If dates appear as ???, ensure that specific locale is generated on your system (locale -a). Termux users: Numeric formats like %d/%m are recommended, as Android lacks full locale data and defaults to English day names.
 
 ### Locale files
 

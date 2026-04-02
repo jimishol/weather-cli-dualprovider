@@ -74,27 +74,27 @@ if [[ -n "$CLI_LANG" ]]; then
 fi
 
 # Logic to determine the best locale for the 'date' command
+# --- Universal Locale Discovery (Termux Compatible) ---
 if [[ -n "$DATE_LOCALE" ]]; then
     USE_LOCALE="$DATE_LOCALE"
 elif [[ -n "$WEATHER_LANG" ]]; then
-    # 1. Search installed locales for the 2-letter code (e.g., "fr") 
-    # 2. Specifically look for a UTF-8 variant to avoid "???" errors
-    # 3. Sort them so we pick the most standard one (e.g., fr_FR over fr_CA if both exist)
-    MATCHING_LOCALE=$(locale -a | grep -i "^${WEATHER_LANG}" | grep -i "utf" | sort | head -n 1)
-
-    # 4. If no UTF-8 was found, try ANY locale starting with that language
-    if [[ -z "$MATCHING_LOCALE" ]]; then
-        MATCHING_LOCALE=$(locale -a | grep -i "^${WEATHER_LANG}" | head -n 1)
+    # Only attempt locale discovery if the 'locale' command exists (e.g., Desktop Linux)
+    if command -v locale >/dev/null 2>&1; then
+        MATCHING_LOCALE=$(locale -a | grep -i "^${WEATHER_LANG}" | grep -i "utf" | sort | head -n 1)
+        [[ -z "$MATCHING_LOCALE" ]] && MATCHING_LOCALE=$(locale -a | grep -i "^${WEATHER_LANG}" | head -n 1)
+        USE_LOCALE="${MATCHING_LOCALE:-$LANG}"
+    else
+        # Fallback for Termux/minimal systems: use LANG if it matches the requested lang
+        if [[ "$LANG" == "${WEATHER_LANG}"* ]]; then
+            USE_LOCALE="$LANG"
+        else
+            USE_LOCALE="en_US.UTF-8"
+        fi
     fi
-
-    # 5. Use the match, or fall back to the system's $LANG
-    USE_LOCALE="${MATCHING_LOCALE:-$LANG}"
 else
-    # 6. If no language was specified, just use the system default
     USE_LOCALE="${LANG:-en_US.UTF-8}"
 fi
 
-# Final safeguard: Ensure USE_LOCALE is never empty
 : "${USE_LOCALE:=en_US.UTF-8}"
 
 # --- end CLI override ---
