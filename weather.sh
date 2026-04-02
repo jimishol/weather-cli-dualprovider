@@ -20,6 +20,13 @@ LON="26.1361"
 # Location for wttr.in (Default: Chios, Greece)
 LOCATION="Chios"
 
+# Date format for the forecast (e.g., "%a %d" for "Fri 03" or "%d-%m-%Y" for "03-04-2026")
+DATE_FORMAT="%a %d"
+
+# Specific locale for date names. If empty, it uses the system default.
+# Example: "el_GR.UTF-8" or "en_US.UTF-8"
+DATE_LOCALE=""
+
 # --- END OF CONFIG ---
 
 for cmd in bash curl jq awk date; do
@@ -65,6 +72,18 @@ done
 if [[ -n "$CLI_LANG" ]]; then
   WEATHER_LANG="${CLI_LANG:0:2}"
 fi
+
+# Logic to determine the best locale for the 'date' command
+if [[ -n "$DATE_LOCALE" ]]; then
+    USE_LOCALE="$DATE_LOCALE"
+elif [[ "$WEATHER_LANG" == "el" ]]; then
+    USE_LOCALE="el_GR.UTF-8"
+elif [[ "$WEATHER_LANG" == "en" ]]; then
+    USE_LOCALE="en_US.UTF-8"
+else
+    USE_LOCALE="${LANG:-en_US.UTF-8}"
+fi
+
 # --- end CLI override ---
 
 # --- CLI: accept forecast days as -f N, --forecast=N or numeric positional (e.g. "weather.sh en 8") ---
@@ -373,7 +392,7 @@ if [[ "$WEATHER_PROVIDER" == "open-meteo" ]]; then
       "\(.daily.time[$i] // "")|\(.daily.weather_code[$i] // 0)|\(.daily.temperature_2m_min[$i] // 0)|\(.daily.temperature_2m_max[$i] // 0)|\(.daily.apparent_temperature_max[$i] // 0)|\(.daily.precipitation_probability_max[$i] // 0)|\(.daily.wind_speed_10m_max[$i] // 0)|\(.daily.wind_direction_10m_dominant[$i] // 0)"
     ' <<<"$data" \
     | while IFS="|" read -r day code tmin tmax tfeel rain w d_deg; do
-        day_fmt=$(date -d "$day" '+%d-%m-%Y' 2>/dev/null || echo "$day")
+        day_fmt=$(LC_ALL="${USE_LOCALE}" date -d "$day" +"$DATE_FORMAT" 2>/dev/null || echo "$day")
 	desc="${DESC_FOR_WMO[$code]:-${LABEL_UNKNOWN:-Unknown}}"
         dir=$(degree_to_dir "${d_deg:-0}")
 
@@ -532,9 +551,9 @@ else
       fi
   
       if [[ "$day" < "$local_date" ]]; then
-        day=$(date -d "$day +1 day" '+%d-%m-%Y')
+        day=$(LC_ALL="${USE_LOCALE}" date -d "$day +1 day" +"$DATE_FORMAT")
       else
-        day=$(date -d "$day" '+%d-%m-%Y')
+        day=$(LC_ALL="${USE_LOCALE}" date -d "$day" +"$DATE_FORMAT")
       fi
 
       case "$mode" in
