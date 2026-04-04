@@ -15,6 +15,29 @@ if [ -n "${1:-}" ]; then
     toggle) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle >/dev/null 2>&1; exit 0 ;;
     mute)   wpctl set-mute @DEFAULT_AUDIO_SINK@ 1 >/dev/null 2>&1; exit 0 ;;
     unmute) wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 >/dev/null 2>&1; exit 0 ;;
+    # --- 1. Action handler for clicks/scrolls ---
+    toggle_sink)
+           # 1. Capture names (Bash handles the newline/whitespace automatically here)
+           # We wrap in $(...) and then re-assign to strip trailing newlines
+           CURRENT=$(pactl get-default-sink)
+           CURRENT=${CURRENT//[[:space:]]/} # Pure Bash: Remove all whitespace
+           
+           # 2. Find sinks using your simplified keywords
+           VIRTUAL=$(pactl list short sinks | awk '{print $2}' | grep -E "virtual|surround" | head -n1)
+           VIRTUAL=${VIRTUAL//[[:space:]]/}
+           
+           PHYSICAL=$(pactl list short sinks | awk '{print $2}' | grep -vE "virtual|surround" | head -n1)
+           PHYSICAL=${PHYSICAL//[[:space:]]/}
+
+           # 3. Toggle Logic
+           if [ "$CURRENT" = "$VIRTUAL" ]; then
+               pactl set-default-sink "$PHYSICAL"
+           else
+               pactl set-default-sink "$VIRTUAL"
+           fi
+           
+           exit 0
+           ;;   
     *) ;; # unknown action -> fall through
   esac
 fi
