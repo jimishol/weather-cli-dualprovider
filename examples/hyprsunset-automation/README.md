@@ -45,8 +45,8 @@ You can add click‑to‑toggle actions that restart `hyprsunset` with a brighte
 ```json
 "on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
 "on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
-"on-scroll-up": "brightnessctl set +5%",
-"on-scroll-down": "brightnessctl set 5%-"
+"on-scroll-up": "brightnessctl -e2 -n2 set +2%",
+"on-scroll-down": "brightnessctl -e2 -n2 set 2%-"
 ```
 
 **Notes**
@@ -67,11 +67,53 @@ This setup uses a simple three‑state model stored in a state file (e.g., `/tmp
 
 ---
 
+### 🖥️ Visual Feedback (Waybar Integration)
+
+Since the automation runs silently via systemd timers, you can add a custom Waybar module to monitor the current temperature/gamma and provide manual overrides.
+
+#### 1. Add the Monitor Script
+Save this as `~/.config/waybar/scripts/gamma_tooltip.sh`. It reads the `hyprsunset` socket to show exactly what the automation has applied.
+
+```bash
+#!/bin/bash
+# Find the active hyprsunset socket
+SOCKET=$(find "/run/user/$UID/hypr/" -maxdepth 2 -name ".hyprsunset.sock" 2>/dev/null | head -n 1)
+
+# Fetch values
+TEMP=$(echo "temperature" | nc -q 0 -U "$SOCKET" 2>/dev/null | tr -dc '0-9')
+GAMMA=$(echo "gamma" | nc -q 0 -U "$SOCKET" 2>/dev/null | tr -dc '0-9')
+
+if [ -n "$TEMP" ]; then
+    tooltip="TEMP: ${TEMP}K\\nGAMMA: ${GAMMA}%"
+else
+    tooltip="hyprsunset\\nis killed"
+fi
+
+printf '{"text": "", "tooltip": "%s"}\n' "$tooltip"
+```
+
+#### 2. Waybar Configuration
+This configuration mimics the native backlight module behavior but interacts with your `hyprsunset` automation.
+
+```jsonc
+"custom/backlight": {
+    "format": "{text}",
+    "return-type": "json",
+    "interval": 600, 
+    "exec": "~/.config/waybar/scripts/gamma_tooltip.sh",
+    // Use your existing toggle script for manual overrides
+    "on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
+    "on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
+    "tooltip": true
+}
+```
+
+---
+
 ### Files referenced
 
-- **Waybar config snippet** (use the handlers shown above):
-```json
-"on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
-"on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
-```
-- **Toggle script**: `~/.config/waybar/scripts/toggle-hyprsunset.sh` (keeps state in `/tmp/hyprsunset_state`, reads `max-gamma` from `~/.config/hypr/hyprsunset.conf`, accepts `ON_OFF`, `NORMAL`, or a numeric boost argument, and uses `BOOST_BRIGHT` env var as default).
+- **Waybar configuration**: Include the `custom/backlight` block in your Waybar config.
+- **Monitor script**: `~/.config/waybar/scripts/gamma_tooltip.sh` (The JSON-provider for the Waybar tooltip).
+- **Toggle script**: `~/.config/waybar/scripts/toggle-hyprsunset.sh` (The state-machine that manages the `hyprsunset` process).
+- **Automation logic**: `~/.config/hypr/update-hyprsunset.sh` (The bridge between `weather.sh` and your configuration).
+- **State file**: `/tmp/hyprsunset_state` (Used to track whether you are in `NORMAL`, `BOOST`, or `OFF` mode).
