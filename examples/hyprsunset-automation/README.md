@@ -71,26 +71,19 @@ This setup uses a simple three‑state model stored in a state file (e.g., `/tmp
 
 Since the automation runs silently via systemd timers, you can add a custom Waybar module to monitor the current temperature/gamma and provide manual overrides.
 
-#### 1. Add the Monitor Script
-Save this as `~/.config/waybar/scripts/gamma_tooltip.sh`. It reads the `hyprsunset` socket to show exactly what the automation has applied.
+#### 1. Set Up the Tooltip Script
+The `gamma_tooltip.sh` script is provided in this directory. Move or link it to your Waybar scripts directory to enable the module:
 
 ```bash
-#!/bin/bash
-# Find the active hyprsunset socket
-SOCKET=$(find "/run/user/$UID/hypr/" -maxdepth 2 -name ".hyprsunset.sock" 2>/dev/null | head -n 1)
+# Create the directory if it doesn't exist
+mkdir -p ~/.config/waybar/scripts/
 
-# Fetch values
-TEMP=$(echo "temperature" | nc -q 0 -U "$SOCKET" 2>/dev/null | tr -dc '0-9')
-GAMMA=$(echo "gamma" | nc -q 0 -U "$SOCKET" 2>/dev/null | tr -dc '0-9')
-
-if [ -n "$TEMP" ]; then
-    tooltip="TEMP: ${TEMP}K\\nGAMMA: ${GAMMA}%"
-else
-    tooltip="hyprsunset\\nis killed"
-fi
-
-printf '{"text": "", "tooltip": "%s"}\n' "$tooltip"
+# Copy the script from this folder and make it executable
+cp gamma_tooltip.sh ~/.config/waybar/scripts/
+chmod +x ~/.config/waybar/scripts/gamma_tooltip.sh
 ```
+
+> **Note:** This script reads the `hyprsunset` socket directly to provide real-time feedback on the current color temperature and automation state.
 
 #### 2. Waybar Configuration
 The following configuration provides a dedicated custom module that displays the current gamma state directly from the automation script.
