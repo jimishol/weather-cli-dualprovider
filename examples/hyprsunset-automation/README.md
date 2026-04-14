@@ -93,7 +93,7 @@ printf '{"text": "", "tooltip": "%s"}\n' "$tooltip"
 ```
 
 #### 2. Waybar Configuration
-This configuration mimics the native backlight module behavior but interacts with your `hyprsunset` automation.
+The following configuration provides a dedicated custom module that displays the current gamma state directly from the automation script.
 
 ```jsonc
 "custom/backlight": {
@@ -101,11 +101,30 @@ This configuration mimics the native backlight module behavior but interacts wit
     "return-type": "json",
     "interval": 600, 
     "exec": "~/.config/waybar/scripts/gamma_tooltip.sh",
-    // Use your existing toggle script for manual overrides
     "on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
     "on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
     "tooltip": true
 }
+```
+
+#### Integration with Native Backlight Module
+Alternatively, you can integrate the automation into the native Waybar `backlight` module. This allows you to control hardware brightness and hyprsunset transitions in one place, using notifications to provide feedback on state changes.
+
+```jsonc
+"backlight": {  
+    "format": "{icon}",  
+    "tooltip-format": "{percent}% {icon}",  
+    "format-icons": ["", "", "", ""],
+    // Actions: Press to toggle, Release to notify status
+    "on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
+    "on-click-release": "sleep 1; notify-send -u low \"hyprsunset Toggle\" \"$(~/.config/waybar/scripts/gamma_tooltip.sh | jq -r '.tooltip')\"",  
+    "on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
+    "on-click-right-release": "sleep 1; notify-send -u low \"Gamma Boost Toggle\" \"$(~/.config/waybar/scripts/gamma_tooltip.sh | jq -r '.tooltip')\"",  
+    "on-click-middle": "notify-send -u low \"Color Status\" \"$(~/.config/waybar/scripts/gamma_tooltip.sh | jq -r '.tooltip')\"",
+    // Hardware Brightness Control
+    "on-scroll-up": "brightnessctl -e2 -n2 set +2%",  
+    "on-scroll-down": "brightnessctl -e2 -n2 set 2%-"  
+},
 ```
 
 ---
