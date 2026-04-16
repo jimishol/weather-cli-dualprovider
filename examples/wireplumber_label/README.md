@@ -5,11 +5,12 @@
 ---
 
 ### Features
+* **Dynamic Opacity (Glow)**: Icons fade/glow based on volume level using Pango markup (requires `format: {}` in Waybar config).
 * **Virtual vs. Physical Detection**: Uses `pactl list sinks` and `node.driver-id` tracing for pinpoint device identification.
-* **Native Sink Toggling**: Swap between physical hardware and virtual filters (like Surround/Atmos) directly via the script.
-* **Language Agnostic**: Uses technical node properties (English) instead of localized descriptions, ensuring icons work correctly on Greek or other non-English system locales.
+* **Native Sink Toggling**: Swap between physical hardware and virtual filters directly via the script.
+* **Language Agnostic**: Uses technical node properties, ensuring icons work correctly on any system locale.
 * **Dynamic Port Inference**: Automatically detects active ports (Headphones vs. Speakers) for both hardware and virtual devices.
-* **Event-Driven Logic**: Utilizes `pactl subscribe` to update the UI instantly when volume changes or devices are swapped.
+* **Event-Driven Logic**: Utilizes `pactl subscribe` for instant UI updates.
 
 ---
 
@@ -25,19 +26,7 @@ chmod +x ~/.config/waybar/scripts/wireplumber_label.sh
 ---
 
 ### Waybar Configuration
-The configuration differs depending on whether you are using software filters (like Atmos/Convolver) or standard hardware profiles.
-
-#### 1. Laptop / Virtual Filter Setup
-If you use a software-based virtual sink, use the script to toggle it:
-```json
-"on-click-right": "~/.config/waybar/scripts/wireplumber_label.sh toggle_sink"
-```
-
-#### 2. Desktop / Hardware Profile Setup
-If your machine does not use virtual filters (the `VIRTUAL_SINK` variable is empty), the script will simply log an error to the terminal. In this case, use your system settings to switch hardware profiles (e.g., Stereo vs. 4.1):
-```json
-"on-click-right": "env XDG_CURRENT_DESKTOP=GNOME gnome-control-center sound"
-```
+To enable the **dynamic opacity (fading)** effect, ensure your `config` file includes `"format": "{}"`. This allows Waybar to parse the Pango markup used for the icons.
 
 **Full Module Example:**
 ```json
@@ -53,19 +42,27 @@ If your machine does not use virtual filters (the `VIRTUAL_SINK` variable is emp
 }
 ```
 
+#### Note on the Right-Click Action:
+* **Virtual Filter Users**: Use the example above (`toggle_sink`) to swap between hardware and software filters (Atmos/Convolver).
+* **Hardware Profile Users**: If you don't use virtual sinks, replace `on-click-right` with your system sound panel to switch hardware profiles (e.g., Stereo vs 5.1):
+  `"on-click-right": "env XDG_CURRENT_DESKTOP=GNOME gnome-control-center sound"`
+
 ---
 
 ### Usage & Troubleshooting
+* **Icon Fading**: To adjust or disable the fading effect, edit the variables at the top of the script:
+    * `USE_PANGO=true`: Enables/disables the glow effect.
+    * `MIN_ALPHA=30`: Sets the minimum icon visibility at 0% volume.
 * **Manual Test**: Run the script in a terminal to verify the JSON output:
     `~/.config/waybar/scripts/wireplumber_label.sh`
 * **Toggle Test**: Test the sink switcher manually by running:
     `~/.config/waybar/scripts/wireplumber_label.sh toggle_sink`
-* **Desktop Fallback**: If Right-Click does nothing on your Desktop, it is because no virtual sink was found. In this case, use the `gnome-control-center` command in your Waybar config instead. 
+* **Desktop Fallback**: If Right-Click does nothing, it is because no virtual sink was found. Use the `gnome-control-center` fallback mentioned above.
 * **Icon Logic**: If your device is 4.1 or virtual, a **V** label appears. If sound stops when plugging in headphones on a surround system, use the sound panel to set the profile to "Analog Stereo."
 
 ---
 
 ### About PipeWire Filter Chains
-This script is particularly useful for users running **PipeWire filter-chain convolvers** (virtual sinks). Such setups often cause standard volume modules to misclassify devices or fail to detect port changes in non-English locales. 
+This script is particularly useful for users running **PipeWire filter-chain convolvers**. Such setups often cause standard volume modules to misclassify devices or fail to detect port changes in non-English locales. 
 
-**Performance Note**: Software-based convolution can be CPU-intensive. Use the toggle to switch back to the physical hardware sink for a direct, low-overhead signal path if you notice audio jitter.
+**Performance Note**: Software-based convolution can be CPU-intensive. Use the toggle to switch back to the physical hardware sink for a direct signal path if you notice audio jitter during high-load tasks.

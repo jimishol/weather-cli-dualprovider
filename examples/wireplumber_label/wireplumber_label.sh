@@ -3,6 +3,10 @@
 # One-shot action handler: perform action and exit when called with args.
 # When called with no args, run in continuous event-driven mode for Waybar.
 
+# Configuration: Min alpha (percentage 0-100)
+USE_PANGO=true
+MIN_ALPHA=35
+
 # --- 1. Action handler for clicks/scrolls ---
 if [ -n "${1:-}" ]; then
   action="$1"
@@ -46,36 +50,51 @@ output_json() {
   local muted="$3"
   local node_name="$4"
 
-  case "$device_type" in
-    v_headphones|*v_headphones*) icon="V"; device_label="Virtual Headphones" ;;
-    v_speakers|*v_speakers*)     icon="V"; device_label="Virtual Speakers" ;;
-    *headphones*)                icon=""; device_label="Headphones" ;;
-    *speakers*)                  icon=""; device_label="Speakers" ;;
-    *)                           icon=""; device_label="Device" ;;
-  esac
-
-  node_name=${node_name//%/}
-
+  # 1. Clean up volume input
   if ! [[ "$volume" =~ ^[0-9]+$ ]]; then
     volume=${volume%%.*}
     volume=${volume:-0}
   fi
 
+  # 2. Pick the base icon (The "Steady" icons)
+  case "$device_type" in
+    v_headphones|*v_headphones*) icon="V"; device_label="Virtual Headphones" ;;
+    v_speakers|*v_speakers*)      icon="V"; device_label="Virtual Speakers" ;;
+    *headphones*)                 icon=""; device_label="Headphones" ;;
+    *speakers*)                   icon=""; device_label="Speakers" ;;
+    *)                            icon=""; device_label="Device" ;;
+  esac
+
+  # 3. Handle Muted vs. Unmuted states
   if [ "$muted" = "yes" ]; then
-    jq -nc --arg text "" \
-          --arg tooltip "$device_label Muted" \
-          --arg class "muted" \
-          --arg device "$device_label" \
-          --argjson percentage 0 \
-          '{text: $text, tooltip: $tooltip, class: $class, device: $device, percentage: $percentage}'
+    final_text=""
+    tooltip_text="$device_label Muted"
+    percentage_val=0
+    class_val="muted"
   else
-    jq -nc --arg text "$icon" \
-          --arg tooltip "$device_label ${volume}%" \
-          --arg class "$device_type" \
-          --arg device "$device_label" \
-          --argjson percentage "$volume" \
-          '{text: $text, tooltip: $tooltip, class: $class, device: $device, percentage: $percentage}'
+    # --- This is where USE_PANGO is involved ---
+    if [ "$USE_PANGO" = true ]; then
+      # Calculate alpha: Start at MIN_ALPHA, scale up to 100 based on volume
+      local alpha=$(( MIN_ALPHA + (volume * (100 - MIN_ALPHA) / 100) ))
+      # Wrap icon in the "Glow" markup
+      final_text="<span alpha='${alpha}%'>$icon</span>"
+    else
+      # Standard "Steady" icon without fading
+      final_text="$icon"
+    fi
+    
+    tooltip_text="$device_label ${volume}%"
+    percentage_val="$volume"
+    class_val="$device_type"
   fi
+
+  # 4. Output the final JSON for Waybar
+  jq -nc --arg text "$final_text" \
+         --arg tooltip "$tooltip_text" \
+         --arg class "$class_val" \
+         --arg device "$device_label" \
+         --argjson percentage "$percentage_val" \
+         '{text: $text, tooltip: $tooltip, class: $class, device: $device, percentage: $percentage}'
 }
 
 # --- 3. Setup global temporary file once ---
