@@ -4,8 +4,10 @@
 # When called with no args, run in continuous event-driven mode for Waybar.
 
 # Configuration: Min alpha (percentage 0-100)
-USE_PANGO=true
-MIN_ALPHA=35
+USE_PANGO="true"
+MIN_ALPHA=30
+# Set to "true" to enable dunst progress bars, "false" to disable.
+DUNST_NOTIFY_VOLUME="true"
 
 # --- 1. Action handler for clicks/scrolls ---
 if [ -n "${1:-}" ]; then
@@ -73,7 +75,7 @@ output_json() {
     class_val="muted"
   else
     # --- This is where USE_PANGO is involved ---
-    if [ "$USE_PANGO" = true ]; then
+    if [ "$USE_PANGO" = "true" ]; then
       # Calculate alpha: Start at MIN_ALPHA, scale up to 100 based on volume
       local alpha=$(( MIN_ALPHA + (volume * (100 - MIN_ALPHA) / 100) ))
       # Wrap icon in the "Glow" markup
@@ -86,6 +88,15 @@ output_json() {
     tooltip_text="$device_label ${volume}%"
     percentage_val="$volume"
     class_val="$device_type"
+  fi
+
+  # --- Optional Dunst Notification ---
+  if [ "$DUNST_NOTIFY_VOLUME" = "true" ]; then
+    if [ "$muted" = "yes" ]; then
+      dunstify -a "Volume" -r 2593 -u low -t 1500 "Muted" -i audio-volume-muted-symbolic
+    else
+      dunstify -a "Volume" -r 2593 -u low -t 500 -h int:value:"$volume" "Volume: ${volume}%"
+    fi
   fi
 
   # 4. Output the final JSON for Waybar
