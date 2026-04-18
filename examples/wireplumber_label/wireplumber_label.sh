@@ -7,7 +7,7 @@
 USE_PANGO="true"
 MIN_ALPHA=30
 # Set to "true" to enable dunst progress bars, "false" to disable.
-DUNST_NOTIFY_VOLUME="true"
+DUNST_NOTIFY_VOLUME="false"
 
 # --- 1. Action handler for clicks/scrolls ---
 if [ -n "${1:-}" ]; then
