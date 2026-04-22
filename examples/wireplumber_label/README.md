@@ -1,8 +1,6 @@
 ### WirePlumber Waybar Module Script
 
-**wireplumber_label.sh** — A lightweight, standalone Waybar module that intelligently identifies your PipeWire sinks. It detects whether a sink is **virtual** or **physical**, distinguishes between **headphones** and **speakers**, and provides a seamless JSON output for real-time Waybar updates.
-
----
+**wireplumber_label.sh** — A compact Waybar module script that detects PipeWire sinks, distinguishes **virtual** vs **physical**, chooses **headphones** vs **speakers** icons, and emits JSON for Waybar. The script also computes the **heard** volume for virtual filters so icon opacity reflects what you actually hear while the tooltip shows the virtual sink percent.
 
 ### Features
 * **Dynamic Opacity (Optional)**: Icons fade/glow based on volume level using Pango markup (requires `format: {}` in Waybar config).
@@ -32,16 +30,20 @@ To enable the **dynamic opacity (fading)** effect, ensure your `config` file inc
 **Full Module Example:**
 ```json
 "custom/audio": {
-    "exec": "~/.config/waybar/scripts/wireplumber_label.sh",
-    "return-type": "json",
-    "format": "{}",
-    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
-    "on-click-right": "~/.config/waybar/scripts/wireplumber_label.sh toggle_sink",
-    "on-scroll-up": "~/.config/waybar/scripts/wireplumber_label.sh up 10",
-    "on-scroll-down": "~/.config/waybar/scripts/wireplumber_label.sh down 10",
-    "tooltip": true
+  "exec": "~/.config/waybar/scripts/wireplumber_label.sh",
+  "return-type": "json",
+  "format": "{}",
+  "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+  "on-click-right": "~/.config/waybar/scripts/wireplumber_label.sh toggle_sink",
+  "on-scroll-up": "~/.config/waybar/scripts/wireplumber_label.sh up 10",
+  "on-scroll-down": "~/.config/waybar/scripts/wireplumber_label.sh down 10",
+  "tooltip": true
 }
 ```
+
+**Notes**
+- **`format: "{}"`** is required to render Pango `<span alpha='...'>` markup used for icon fading.
+- If you see raw `<span ...>` text, set `USE_PANGO="false"` in the script or remove `"format": "{}"`.
 
 ---
 
@@ -62,6 +64,53 @@ progress_bar_min_width = 150
 progress_bar_max_width = 300
 progress_bar_corner_radius = 0
 ```
+---
+
+### PipeWire Filter Naming and Examples
+
+**Required pattern for deterministic detection**
+
+For reliable virtual-sink detection and correct icon fading, name filter sinks like:
+
+```conf
+node.name = "effect_input.<SHORTNAME>"
+```
+
+**Why this matters**
+
+- The script treats `node.name` values starting with **`effect_input.`** as virtual filter sinks.
+- When a virtual sink is active the script attempts to find the mapped physical sink (via `node.driver-id` → `object.id`) and computes:
+
+```
+heard_volume = virtual_volume * physical_volume / 100
+```
+
+This makes the Waybar icon opacity reflect the audible level while the tooltip still shows the virtual sink percent.
+
+**Minimal filter example**
+
+```conf
+capture.props = {
+  node.name = "effect_input.IE200"
+  media.class = Audio/Sink
+  audio.channels = 8
+}
+playback.props = {
+  node.name = "effect_input.IE200"
+  node.passive = true
+  audio.channels = 2
+}
+```
+
+**Multiple filters**
+
+- Give each filter a unique short name after `effect_input.` (e.g., `effect_input.DT990`, `effect_input.IE200`).
+- The script cycles virtual sinks first when using the `toggle_sink` action.
+
+**Fallback behavior**
+
+- If `node.driver-id` mapping cannot be resolved, the script falls back to the first non-`effect_input.` sink found by `pactl list short sinks`.
+- This preserves functionality on systems where mappings are missing or formatted differently.
 
 ---
 
@@ -77,6 +126,12 @@ progress_bar_corner_radius = 0
     * **Hardware Users**: Replace `on-click-right` with your sound panel:
       `"on-click-right": "env XDG_CURRENT_DESKTOP=GNOME gnome-control-center sound"`
 * **Icon Logic**: If your device is 4.1 or virtual, a **V** label appears. If sound stops when switching to headphones on surround systems, set the profile to "Analog Stereo" in your sound panel.
+
+**If icon opacity does not match audible volume**
+
+1. Confirm your filter has `node.name = "effect_input.<NAME>"`.
+2. Confirm the physical sink block contains `object.id` or `object.serial`.
+3. If you have multiple physical sinks, the fallback may pick a different device — prefer `node.driver-id` mapping.
 
 ---
 
