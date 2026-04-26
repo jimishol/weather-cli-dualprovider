@@ -3,13 +3,13 @@
 **wireplumber_label.sh** — A compact Waybar module script that detects PipeWire sinks, distinguishes **virtual** vs **physical**, chooses **headphones** vs **speakers** icons, and emits JSON for Waybar. The script also computes the **heard** volume for virtual filters so icon opacity reflects what you actually hear while the tooltip shows the virtual sink percent.
 
 ### Features
-* **Dynamic Opacity (Optional)**: Icons fade/glow based on volume level using Pango markup (requires `format: {}` in Waybar config).
-* **Dunst Volume Notifications (Optional)**: Optional integration with `dunstify` to display sleek, stackable volume progress bars.
-* **Virtual vs. Physical Detection**: Uses `pactl list sinks` and `node.driver-id` tracing for pinpoint device identification.
-* **Native Sink Toggling**: Swap between physical hardware and virtual filters directly via the script.
-* **Language Agnostic**: Uses technical node properties, ensuring icons work correctly on any system locale.
-* **Dynamic Port Inference**: Automatically detects active ports (Headphones vs. Speakers) for both hardware and virtual devices.
-* **Event-Driven Logic**: Utilizes `pactl subscribe` for instant UI updates.
+* **Dynamic Opacity (Optional)**: Icons fade/glow based on audible volume using Pango markup (requires Waybar `format: "{}"`).
+* **Dunst Volume Notifications (Optional)**: Optional `dunstify` integration for progress‑bar volume notifications.
+* **Virtual vs Physical Detection**: Uses `pactl list sinks` and `node.driver-id` tracing to map virtual filters to physical sinks.
+* **Sink Cycling**: Built‑in `toggle_sink` action cycles virtual sinks first, then physical sinks.
+* **Locale‑agnostic**: Uses node properties for robust detection across locales.
+* **Port Inference**: Detects active ports (headphones vs speakers) for both hardware and virtual sinks.
+* **Event Driven**: Uses `pactl subscribe` for instant updates.
 
 ---
 
@@ -118,7 +118,7 @@ playback.props = {
 * **Icon Fading & Notifications**: Edit variables at the top of the script to customize:
     * `USE_PANGO="true"`: Enables/disables the glow effect. Set to "false" if you see raw <span alpha...> tags in your bar.
     * `MIN_ALPHA=30`: Sets the minimum icon visibility at 0% volume.
-    * `DUNST_NOTIFY_VOLUME="false"`: Enables Dunst progress bar notifications. Set to "true" to opt-in (requires dunstify and the dunstrc rules below).
+    * `DUNST_NOTIFY_VOLUME="false"`: Enables Dunst progress bar notifications. Set to "true" to opt-in (requires dunstify and the dunstrc rules above).
 * **Manual Test**: Run the script in a terminal to verify the JSON output:
     `~/.config/waybar/scripts/wireplumber_label.sh`
 * **Note on Right-Click**:
@@ -134,6 +134,32 @@ playback.props = {
 3. If you have multiple physical sinks, the fallback may pick a different device — prefer `node.driver-id` mapping.
 
 ---
+## 🎨 Color-Coded Audio Status (Binaural / Atmos)
+
+This module uses color as a functional indicator of audio pipeline state. Colors help you quickly see whether audio is being processed by virtual filters (binaural/Atmos) or sent directly to hardware.
+
+| Icon | Device | Color | Hex | Meaning |
+| :--- | :----- | :---: | :--: | :------ |
+|  | Speakers | Soft Light Gray | `#e6e6e6` | Baseline: neutral stereo on physical speakers |
+| V | Virtual Speakers | Bright Red | `#ff5a5a` | Alert: virtual binaural downmix on speakers — switch outputs |
+|  | Headphones | Dark Aqua | `#00e5e5` | Standard stereo: 2‑channel listening |
+| V | Virtual Headphones | Deep Gold | `#e6b800` | Premium: binaural convolver active for immersive audio |
+
+**Notes**
+- Colors are applied via Pango markup in the script and via Waybar CSS when using HTML spans.
+- For Pango opacity fading use `format: "{}"` in Waybar so Pango `<span alpha='...'>` is rendered.
+- If you prefer CSS styling of HTML spans, set `USE_PANGO="false"` and emit `<span class="icon">…</span>` from the script with Waybar `escape: false`.
+
+### 🖌️ Customizing the Colors
+Colors are parsed natively via Pango markup directly into the Waybar icon and Dunst notifications. If you want to change them to match your system theme (e.g., Catppuccin, Nord, Rose Pine), simply edit the variables at the top of the `wireplumber_label.sh` script:
+
+```bash
+# Output Colors
+SPEAKERS_COLOR="#e6e6e6"      
+VSPEAKERS_COLOR="#ff5a5a"     
+HEADPHONES_COLOR="#00e5e5"    
+VHEADPHONES_COLOR="#e6b800"
+```
 
 ### About PipeWire Filter Chains
 This script is particularly useful for users running **PipeWire filter-chain convolvers**. Such setups often cause standard volume modules to misclassify devices or fail to detect port changes in non-English locales. 

@@ -11,6 +11,13 @@
 # Configuration: Min alpha (percentage 0-100)
 USE_PANGO="true"
 MIN_ALPHA=30
+
+# Output Colors
+SPEAKERS_COLOR="#e6e6e6"      # Soft Light Gray (clean, neutral stereo output)
+VSPEAKERS_COLOR="#ff5a5a"     # Brightened Red (clear alert/error)
+HEADPHONES_COLOR="#00e5e5"    # Darker Aqua (smooth, cool stereo)
+VHEADPHONES_COLOR="#e6b800"   # Deep Gold (warm, premium virtual processing)
+
 # Set to "true" to enable dunst progress bars, "false" to disable.
 DUNST_NOTIFY_VOLUME="false"
 
@@ -100,13 +107,18 @@ output_json() {
     fi
   fi
 
-  # 2. Pick the base icon (The "Steady" icons)
+  # 2. Pick the base icon and color
   case "$device_type" in
-    v_headphones|*v_headphones*) icon="V"; device_label="Virtual Headphones" ;;
-    v_speakers|*v_speakers*)      icon="V"; device_label="Virtual Speakers" ;;
-    *headphones*)                 icon=""; device_label="Headphones" ;;
-    *speakers*)                   icon=""; device_label="Speakers" ;;
-    *)                            icon=""; device_label="Device" ;;
+    v_headphones|*v_headphones*) 
+      icon="V"; device_label="Virtual Headphones"; dev_color="$VHEADPHONES_COLOR" ;;
+    v_speakers|*v_speakers*) 
+      icon="V"; device_label="Virtual Speakers"; dev_color="$VSPEAKERS_COLOR" ;;
+    *headphones*) 
+      icon=""; device_label="Headphones"; dev_color="$HEADPHONES_COLOR" ;;
+    *speakers*) 
+      icon=""; device_label="Speakers"; dev_color="$SPEAKERS_COLOR" ;;
+    *) 
+      icon=""; device_label="Device"; dev_color="" ;;
   esac
 
   # 3. Handle Muted vs. Unmuted states
@@ -122,7 +134,12 @@ output_json() {
       local alpha_pct=${heard_volume:-$volume}
       # Calculate alpha: Start at MIN_ALPHA, scale up to 100 based on chosen percentage
       local alpha=$(( MIN_ALPHA + (alpha_pct * (100 - MIN_ALPHA) / 100) ))
-      final_text="<span alpha='${alpha}%'>$icon</span>"
+      
+      if [ -n "$dev_color" ]; then
+        final_text="<span alpha='${alpha}%' color='${dev_color}'>$icon</span>"
+      else
+        final_text="<span alpha='${alpha}%'>$icon</span>"
+      fi
     else
       final_text="$icon"
     fi
