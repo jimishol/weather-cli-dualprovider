@@ -1,0 +1,422 @@
+context.modules = [
+    #{ name = <module-name>
+    #    ( args  = { <key> = <value> ... } )
+    #    ( flags = [ ( ifexists ) ( nofail ) ] )
+    #    ( condition = [ { <key> = <value> ... } ... ] )
+    #}
+    #
+    # Loads a module with the given parameters.
+    # If ifexists is given, the module is ignored when it is not found.
+    # If nofail is given, module initialization failures are ignored.
+    # If condition is given, the module is loaded only when the context
+    # properties all match the match rules.
+    #
+
+    # Uses realtime scheduling to boost the audio thread priorities. This uses
+    # RTKit if the user doesn't have permission to use regular realtime
+    # scheduling. You can also clamp utilisation values to improve scheduling
+    # on embedded and heterogeneous systems, e.g. Arm big.LITTLE devices.
+    # use module.rt.args = { ... } to override the arguments.
+    { name = libpipewire-module-rt
+        args = {
+            nice.level    = -11
+            rt.prio       = 88
+            #rt.time.soft = -1
+            #rt.time.hard = -1
+            #uclamp.min = 0
+            #uclamp.max = 1024
+        }
+        flags = [ ifexists nofail ]
+        condition = [ { module.rt = !false } ]
+    }
+
+    # The native communication protocol.
+    { name = libpipewire-module-protocol-native
+        args = {
+            # List of server Unix sockets, and optionally permissions
+            #sockets = [ { name = "pipewire-0" }, { name = "pipewire-0-manager" } ]
+        }
+    }
+
+    # The profile module. Allows application to access profiler
+    # and performance data. It provides an interface that is used
+    # by pw-top and pw-profiler.
+    # use module.profiler.args = { ... } to override the arguments.
+    { name = libpipewire-module-profiler
+        args = {
+            #profile.interval.ms = 0
+        }
+        condition = [ { module.profiler = !false } ]
+    }
+
+    # Allows applications to create metadata objects. It creates
+    # a factory for Metadata objects.
+    { name = libpipewire-module-metadata
+        condition = [ { module.metadata = !false } ]
+    }
+
+    # Creates a factory for making devices that run in the
+    # context of the PipeWire server.
+    { name = libpipewire-module-spa-device-factory
+        condition = [ { module.spa-device-factory = !false } ]
+    }
+
+    # Creates a factory for making nodes that run in the
+    # context of the PipeWire server.
+    { name = libpipewire-module-spa-node-factory
+        condition = [ { module.spa-node-factory = !false } ]
+    }
+
+    # Allows creating nodes that run in the context of the
+    # client. Is used by all clients that want to provide
+    # data to PipeWire.
+    { name = libpipewire-module-client-node
+        condition = [ { module.client-node = !false } ]
+    }
+
+    # Allows creating devices that run in the context of the
+    # client. Is used by the session manager.
+    { name = libpipewire-module-client-device
+        condition = [ { module.client-device = !false } ]
+    }
+
+    # The portal module monitors the PID of the portal process
+    # and tags connections with the same PID as portal
+    # connections.
+    { name = libpipewire-module-portal
+        flags = [ ifexists nofail ]
+        condition = [ { module.portal = !false } ]
+    }
+
+    # The access module can perform access checks and block
+    # new clients.
+    { name = libpipewire-module-access
+        args = {
+            # Socket-specific access permissions
+            #access.socket = { pipewire-0 = "default", pipewire-0-manager = "unrestricted" }
+
+            # Deprecated legacy mode (not socket-based),
+            # for now enabled by default if access.socket is not specified
+            #access.legacy = true
+        }
+        condition = [ { module.access = !false } ]
+    }
+
+    # Makes a factory for wrapping nodes in an adapter with a
+    # converter and resampler.
+    { name = libpipewire-module-adapter
+        condition = [ { module.adapter = !false } ]
+    }
+
+    # Makes a factory for creating links between ports.
+    # use module.link-factory.args = { ... } to override the arguments.
+    { name = libpipewire-module-link-factory
+        args = {
+            #allow.link.passive = false
+	}
+        condition = [ { module.link-factory = !false } ]
+    }
+
+    # Provides factories to make session manager objects.
+    { name = libpipewire-module-session-manager
+        condition = [ { module.session-manager = !false } ]
+    }
+
+    # Use libcanberra to play X11 Bell
+    { name = libpipewire-module-x11-bell
+        args = {
+            #sink.name = "@DEFAULT_SINK@"
+            #sample.name = "bell-window-system"
+            #x11.display = null
+            #x11.xauthority = null
+        }
+        flags = [ ifexists nofail ]
+        condition = [ { module.x11.bell = !false } ]
+    }
+    # The JACK DBus detection module. When jackdbus is started, this
+    # will automatically make PipeWire become a JACK client.
+    # use module.jackdbus-detect.args = { ... } to override the arguments.
+    { name = libpipewire-module-jackdbus-detect
+        args = {
+            #jack.library     = libjack.so.0
+            #jack.server      = null
+            #jack.client-name = PipeWire
+            #jack.connect     = true
+            #tunnel.mode      = duplex  # source|sink|duplex
+            source.props = {
+                #audio.channels = 2
+		#midi.ports = 1
+                #audio.position = [ FL FR ]
+                # extra sink properties
+            }
+            sink.props = {
+                #audio.channels = 2
+		#midi.ports = 1
+                #audio.position = [ FL FR ]
+                # extra sink properties
+            }
+        }
+        flags = [ ifexists nofail ]
+        condition = [ { module.jackdbus-detect = !false } ]
+    }
+    { name = libpipewire-module-filter-chain
+        flags = [ nofail ]
+        args = {
+            node.description = "atmos - Beyerdynamic DT 990"
+            media.name       = "atmos - Beyerdynamic DT 990"
+            filter.graph = {
+                nodes = [
+                    # duplicate inputs
+                    { type = builtin label = copy name = copyFL  }
+                    { type = builtin label = copy name = copyFR  }
+                    { type = builtin label = copy name = copyFC  }
+                    { type = builtin label = copy name = copyRL  }
+                    { type = builtin label = copy name = copyRR  }
+                    { type = builtin label = copy name = copySL  }
+                    { type = builtin label = copy name = copySR  }
+                    { type = builtin label = copy name = copyLFE }
+
+                    # apply hrir - HeSuVi 14-channel WAV (not the *-.wav variants) (note: */44/* in HeSuVi are the same, but resampled to 44100)
+                    { type = builtin label = convolver name = convFL_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  0 } }
+                    { type = builtin label = convolver name = convFL_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  1 } }
+                    { type = builtin label = convolver name = convSL_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  2 } }
+                    { type = builtin label = convolver name = convSL_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  3 } }
+                    { type = builtin label = convolver name = convRL_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  4 } }
+                    { type = builtin label = convolver name = convRL_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  5 } }
+                    { type = builtin label = convolver name = convFC_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  6 } }
+                    { type = builtin label = convolver name = convFR_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  7 } }
+                    { type = builtin label = convolver name = convFR_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  8 } }
+                    { type = builtin label = convolver name = convSR_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  9 } }
+                    { type = builtin label = convolver name = convSR_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel = 10 } }
+                    { type = builtin label = convolver name = convRR_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel = 11 } }
+                    { type = builtin label = convolver name = convRR_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel = 12 } }
+                    { type = builtin label = convolver name = convFC_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel = 13 } }
+
+                    # treat LFE as FC
+                    { type = builtin label = convolver name = convLFE_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel =  6 } }
+                    { type = builtin label = convolver name = convLFE_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_DT990.wav" channel = 13 } }
+
+                    # stereo output
+                    { type = builtin label = mixer name = mixL }
+                    { type = builtin label = mixer name = mixR }
+                ]
+                links = [
+                    # input
+                    { output = "copyFL:Out"  input="convFL_L:In"  }
+                    { output = "copyFL:Out"  input="convFL_R:In"  }
+                    { output = "copySL:Out"  input="convSL_L:In"  }
+                    { output = "copySL:Out"  input="convSL_R:In"  }
+                    { output = "copyRL:Out"  input="convRL_L:In"  }
+                    { output = "copyRL:Out"  input="convRL_R:In"  }
+                    { output = "copyFC:Out"  input="convFC_L:In"  }
+                    { output = "copyFR:Out"  input="convFR_R:In"  }
+                    { output = "copyFR:Out"  input="convFR_L:In"  }
+                    { output = "copySR:Out"  input="convSR_R:In"  }
+                    { output = "copySR:Out"  input="convSR_L:In"  }
+                    { output = "copyRR:Out"  input="convRR_R:In"  }
+                    { output = "copyRR:Out"  input="convRR_L:In"  }
+                    { output = "copyFC:Out"  input="convFC_R:In"  }
+                    { output = "copyLFE:Out" input="convLFE_L:In" }
+                    { output = "copyLFE:Out" input="convLFE_R:In" }
+
+                    # output
+                    { output = "convFL_L:Out"  input="mixL:In 1" }
+                    { output = "convFL_R:Out"  input="mixR:In 1" }
+                    { output = "convSL_L:Out"  input="mixL:In 2" }
+                    { output = "convSL_R:Out"  input="mixR:In 2" }
+                    { output = "convRL_L:Out"  input="mixL:In 3" }
+                    { output = "convRL_R:Out"  input="mixR:In 3" }
+                    { output = "convFC_L:Out"  input="mixL:In 4" }
+                    { output = "convFC_R:Out"  input="mixR:In 4" }
+                    { output = "convFR_R:Out"  input="mixR:In 5" }
+                    { output = "convFR_L:Out"  input="mixL:In 5" }
+                    { output = "convSR_R:Out"  input="mixR:In 6" }
+                    { output = "convSR_L:Out"  input="mixL:In 6" }
+                    { output = "convRR_R:Out"  input="mixR:In 7" }
+                    { output = "convRR_L:Out"  input="mixL:In 7" }
+                    { output = "convLFE_R:Out" input="mixR:In 8" }
+                    { output = "convLFE_L:Out" input="mixL:In 8" }
+                ]
+                inputs  = [ "copyFL:In" "copyFR:In" "copyFC:In" "copyLFE:In" "copyRL:In" "copyRR:In", "copySL:In", "copySR:In" ]
+                outputs = [ "mixL:Out" "mixR:Out" ]
+            }
+            capture.props = {
+                node.name      = "effect_input.DT990"
+                media.class    = Audio/Sink
+                audio.channels = 8
+                audio.position = [ FL FR FC LFE RL RR SL SR ]
+            }
+            playback.props = {
+                node.name      = "effect_input.DT990"
+                node.passive   = true
+                audio.channels = 2
+                audio.position = [ FL FR ]
+            }
+        }
+    }
+    { name = libpipewire-module-filter-chain
+        flags = [ nofail ]
+        args = {
+            node.description = "atmos - Sennheiser IE 200"
+            media.name       = "atmos - Sennheiser IE 200"
+            filter.graph = {
+                nodes = [
+                    # duplicate inputs
+                    { type = builtin label = copy name = copyFL  }
+                    { type = builtin label = copy name = copyFR  }
+                    { type = builtin label = copy name = copyFC  }
+                    { type = builtin label = copy name = copyRL  }
+                    { type = builtin label = copy name = copyRR  }
+                    { type = builtin label = copy name = copySL  }
+                    { type = builtin label = copy name = copySR  }
+                    { type = builtin label = copy name = copyLFE }
+
+                    # apply hrir - HeSuVi 14-channel WAV (not the *-.wav variants) (note: */44/* in HeSuVi are the same, but resampled to 44100)
+                    { type = builtin label = convolver name = convFL_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  0 } }
+                    { type = builtin label = convolver name = convFL_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  1 } }
+                    { type = builtin label = convolver name = convSL_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  2 } }
+                    { type = builtin label = convolver name = convSL_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  3 } }
+                    { type = builtin label = convolver name = convRL_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  4 } }
+                    { type = builtin label = convolver name = convRL_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  5 } }
+                    { type = builtin label = convolver name = convFC_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  6 } }
+                    { type = builtin label = convolver name = convFR_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  7 } }
+                    { type = builtin label = convolver name = convFR_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  8 } }
+                    { type = builtin label = convolver name = convSR_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  9 } }
+                    { type = builtin label = convolver name = convSR_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel = 10 } }
+                    { type = builtin label = convolver name = convRR_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel = 11 } }
+                    { type = builtin label = convolver name = convRR_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel = 12 } }
+                    { type = builtin label = convolver name = convFC_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel = 13 } }
+
+                    # treat LFE as FC
+                    { type = builtin label = convolver name = convLFE_L config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel =  6 } }
+                    { type = builtin label = convolver name = convLFE_R config = { filename = "/home/YOUR_USERNAME/.config/pipewire/sadie_IE200.wav" channel = 13 } }
+
+                    # stereo output
+                    { type = builtin label = mixer name = mixL }
+                    { type = builtin label = mixer name = mixR }
+                ]
+                links = [
+                    # input
+                    { output = "copyFL:Out"  input="convFL_L:In"  }
+                    { output = "copyFL:Out"  input="convFL_R:In"  }
+                    { output = "copySL:Out"  input="convSL_L:In"  }
+                    { output = "copySL:Out"  input="convSL_R:In"  }
+                    { output = "copyRL:Out"  input="convRL_L:In"  }
+                    { output = "copyRL:Out"  input="convRL_R:In"  }
+                    { output = "copyFC:Out"  input="convFC_L:In"  }
+                    { output = "copyFR:Out"  input="convFR_R:In"  }
+                    { output = "copyFR:Out"  input="convFR_L:In"  }
+                    { output = "copySR:Out"  input="convSR_R:In"  }
+                    { output = "copySR:Out"  input="convSR_L:In"  }
+                    { output = "copyRR:Out"  input="convRR_R:In"  }
+                    { output = "copyRR:Out"  input="convRR_L:In"  }
+                    { output = "copyFC:Out"  input="convFC_R:In"  }
+                    { output = "copyLFE:Out" input="convLFE_L:In" }
+                    { output = "copyLFE:Out" input="convLFE_R:In" }
+
+                    # output
+                    { output = "convFL_L:Out"  input="mixL:In 1" }
+                    { output = "convFL_R:Out"  input="mixR:In 1" }
+                    { output = "convSL_L:Out"  input="mixL:In 2" }
+                    { output = "convSL_R:Out"  input="mixR:In 2" }
+                    { output = "convRL_L:Out"  input="mixL:In 3" }
+                    { output = "convRL_R:Out"  input="mixR:In 3" }
+                    { output = "convFC_L:Out"  input="mixL:In 4" }
+                    { output = "convFC_R:Out"  input="mixR:In 4" }
+                    { output = "convFR_R:Out"  input="mixR:In 5" }
+                    { output = "convFR_L:Out"  input="mixL:In 5" }
+                    { output = "convSR_R:Out"  input="mixR:In 6" }
+                    { output = "convSR_L:Out"  input="mixL:In 6" }
+                    { output = "convRR_R:Out"  input="mixR:In 7" }
+                    { output = "convRR_L:Out"  input="mixL:In 7" }
+                    { output = "convLFE_R:Out" input="mixR:In 8" }
+                    { output = "convLFE_L:Out" input="mixL:In 8" }
+                ]
+                inputs  = [ "copyFL:In" "copyFR:In" "copyFC:In" "copyLFE:In" "copyRL:In" "copyRR:In", "copySL:In", "copySR:In" ]
+                outputs = [ "mixL:Out" "mixR:Out" ]
+            }
+            capture.props = {
+                node.name      = "effect_input.IE200"
+                media.class    = Audio/Sink
+                audio.channels = 8
+                audio.position = [ FL FR FC LFE RL RR SL SR ]
+            }
+            playback.props = {
+                node.name      = "effect_input.IE200"
+                node.passive   = true
+                audio.channels = 2
+                audio.position = [ FL FR ]
+            }
+        }
+    }
+    { name = libpipewire-module-filter-chain
+            flags = [ nofail ]
+            args = {
+                node.description = "Stereo EQ - Beyerdynamic DT 990 Full"
+                media.name       = "Stereo EQ - Beyerdynamic DT 990 Full"
+                filter.graph = {
+                    nodes = [
+                        # Preamp (Shared Name Naming Collision as requested)
+                        { type = builtin label = mixer name = preampL control = { "Gain 1" = 0.54 } }
+                        { type = builtin label = mixer name = preampR control = { "Gain 1" = 0.54 } }
+    
+                        # Left Channel (L1 to L10)
+                        { type = builtin label = bq_lowshelf  name = L1  control = { "Freq" = 105.0  "Gain" = 5.7  "Q" = 0.70 } }
+                        { type = builtin label = bq_peaking   name = L2  control = { "Freq" = 82.6   "Gain" = -4.5 "Q" = 0.67 } }
+                        { type = builtin label = bq_peaking   name = L3  control = { "Freq" = 200.8  "Gain" = -1.1 "Q" = 2.44 } }
+                        { type = builtin label = bq_peaking   name = L4  control = { "Freq" = 357.0  "Gain" = 0.7  "Q" = 3.56 } }
+                        { type = builtin label = bq_peaking   name = L5  control = { "Freq" = 630.6  "Gain" = 2.0  "Q" = 1.25 } }
+                        { type = builtin label = bq_peaking   name = L6  control = { "Freq" = 1038.8 "Gain" = -1.4 "Q" = 2.31 } }
+                        { type = builtin label = bq_peaking   name = L7  control = { "Freq" = 2254.9 "Gain" = 1.7  "Q" = 2.37 } }
+                        { type = builtin label = bq_peaking   name = L8  control = { "Freq" = 4629.2 "Gain" = 4.7  "Q" = 4.14 } }
+                        { type = builtin label = bq_peaking   name = L9  control = { "Freq" = 6291.1 "Gain" = -2.4 "Q" = 4.64 } }
+                        { type = builtin label = bq_highshelf name = L10 control = { "Freq" = 10000.0 "Gain" = -5.2 "Q" = 0.70 } }
+    
+                        # Right Channel (R1 to R10)
+                        { type = builtin label = bq_lowshelf  name = R1  control = { "Freq" = 105.0  "Gain" = 5.7  "Q" = 0.70 } }
+                        { type = builtin label = bq_peaking   name = R2  control = { "Freq" = 82.6   "Gain" = -4.5 "Q" = 0.67 } }
+                        { type = builtin label = bq_peaking   name = R3  control = { "Freq" = 200.8  "Gain" = -1.1 "Q" = 2.44 } }
+                        { type = builtin label = bq_peaking   name = R4  control = { "Freq" = 357.0  "Gain" = 0.7  "Q" = 3.56 } }
+                        { type = builtin label = bq_peaking   name = R5  control = { "Freq" = 630.6  "Gain" = 2.0  "Q" = 1.25 } }
+                        { type = builtin label = bq_peaking   name = R6  control = { "Freq" = 1038.8 "Gain" = -1.4 "Q" = 2.31 } }
+                        { type = builtin label = bq_peaking   name = R7  control = { "Freq" = 2254.9 "Gain" = 1.7  "Q" = 2.37 } }
+                        { type = builtin label = bq_peaking   name = R8  control = { "Freq" = 4629.2 "Gain" = 4.7  "Q" = 4.14 } }
+                        { type = builtin label = bq_peaking   name = R9  control = { "Freq" = 6291.1 "Gain" = -2.4 "Q" = 4.64 } }
+                        { type = builtin label = bq_highshelf name = R10 control = { "Freq" = 10000.0 "Gain" = -5.2 "Q" = 0.70 } }
+                    ]
+                    links = [
+                        # Left Links
+                        { output = "preampL:Out" input = "L1:In" }
+                        { output = "L1:Out" input = "L2:In" } { output = "L2:Out" input = "L3:In" }
+                        { output = "L3:Out" input = "L4:In" } { output = "L4:Out" input = "L5:In" }
+                        { output = "L5:Out" input = "L6:In" } { output = "L6:Out" input = "L7:In" }
+                        { output = "L7:Out" input = "L8:In" } { output = "L8:Out" input = "L9:In" }
+                        { output = "L9:Out" input = "L10:In" }
+    
+                        # Right Links
+                        { output = "preampR:Out" input = "R1:In" }
+                        { output = "R1:Out" input = "R2:In" } { output = "R2:Out" input = "R3:In" }
+                        { output = "R3:Out" input = "R4:In" } { output = "R4:Out" input = "R5:In" }
+                        { output = "R5:Out" input = "R6:In" } { output = "R6:Out" input = "R7:In" }
+                        { output = "R7:Out" input = "R8:In" } { output = "R8:Out" input = "R9:In" }
+                        { output = "R9:Out" input = "R10:In" }
+                    ]
+                    inputs  = [ "preampL:In 1" "preampR:In 1" ]
+                    outputs = [ "L10:Out" "R10:Out" ]
+                }
+                capture.props = {
+                    node.name      = "effect_input.stereoDT990"
+                    media.class    = Audio/Sink
+                    audio.channels = 2
+                    audio.position = [ FL FR ]
+                }
+                playback.props = {
+                    node.name      = "effect_input.stereoDT990" # SHARED NAME RESTORED
+                    node.passive   = false
+                    target.object  = "alsa_output.pci-0000_00_1b.0.analog-stereo"
+                    audio.channels = 2
+                    audio.position = [ FL FR ]
+                }
+            }
+        }
+]
