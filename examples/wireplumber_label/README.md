@@ -6,7 +6,7 @@
 * **Dynamic Opacity (Optional)**: Icons fade/glow based on audible volume using Pango markup (requires Waybar `format: "{}"`).
 * **Dunst Volume Notifications (Optional)**: Optional `dunstify` integration for progress‑bar volume notifications.
 * **Virtual vs Physical Detection**: Uses `pactl list sinks` and `node.driver-id` tracing to map virtual filters to physical sinks.
-* **Sink Cycling**: Built‑in `toggle_sink` action cycles virtual sinks first, then physical sinks.
+* **Flexible Sink Switching:** Supports both **sequential cycling** and **interactive searchable menus** (via wofi/rofi/fuzzel) to switch between virtual and physical audio devices.
 * **Locale‑agnostic**: Uses node properties for robust detection across locales.
 * **Port Inference**: Detects active ports (headphones vs speakers) for both hardware and virtual sinks.
 * **Event Driven**: Uses `pactl subscribe` for instant updates.
@@ -116,22 +116,18 @@ playback.props = {
 
 ### Usage & Troubleshooting
 * **Icon Fading & Notifications**: Edit variables at the top of the script to customize:
-    * `USE_PANGO="true"`: Enables/disables the glow effect. Set to "false" if you see raw <span alpha...> tags in your bar.
+    * `USE_PANGO="true"`: Enables/disables the glow effect. Set to "false" if you see raw `<span alpha...>` tags in your bar.
     * `MIN_ALPHA=30`: Sets the minimum icon visibility at 0% volume.
-    * `DUNST_NOTIFY_VOLUME="false"`: Enables Dunst progress bar notifications. Set to "true" to opt-in (requires dunstify and the dunstrc rules above).
+    * `DUNST_NOTIFY_VOLUME="false"`: Enables Dunst progress bar notifications. Set to "true" to opt-in (requires `dunstify`).
+* **Sink Selection Mode**: Customize how you switch audio devices via the `MENU` flag:
+    * **Cycle Mode (`MENU="false"`)**: Each click cycles through sinks (Virtual filters first, then Physical hardware).
+    * **Menu Mode (`MENU="true"`)**: Opens an interactive, searchable menu using your `MENU_COMMAND` (e.g., `wofi` or `rofi`) to pick a specific sink.
 * **Manual Test**: Run the script in a terminal to verify the JSON output:
     `~/.config/waybar/scripts/wireplumber_label.sh`
 * **Note on Right-Click**:
     * **Virtual Filter Users**: Use `toggle_sink` (as shown in the JSON example) to swap hardware/software filters.
-    * **Hardware Users**: Replace `on-click-right` with your sound panel:
-      `"on-click-right": "env XDG_CURRENT_DESKTOP=GNOME gnome-control-center sound"`
-* **Icon Logic**: If your device is 4.1 or virtual, a **V** label appears. If sound stops when switching to headphones on surround systems, set the profile to "Analog Stereo" in your sound panel.
-
-**If icon opacity does not match audible volume**
-
-1. Confirm your filter has `node.name = "effect_input.<NAME>"`.
-2. Confirm the physical sink block contains `object.id` or `object.serial`.
-3. If you have multiple physical sinks, the fallback may pick a different device — prefer `node.driver-id` mapping.
+    * **Hardware Users**: Replace `on-click-right` with your preferred sound control panel (e.g., `pavucontrol`).
+* **Icon Logic**: A **V** label appears if the sink name matches `effect_input.*` (Virtual Filter). If switching to a virtual sink results in silence, ensure the filter's `playback.props` has `node.always-process = true` to force the audio link.
 
 ---
 ## 🎨 Color-Coded Audio Status (Binaural / Atmos)

@@ -8,10 +8,11 @@
 # The script prefers that pattern but will fall back to driver-id mapping
 # (node.driver-id -> object.id/object.serial) and then to the first non-effect_input sink.
 
-# Configuration: Min alpha (percentage 0-100)
+# CONFIGURATION - START
+
+# Min alpha (percentage 0-100)
 USE_PANGO="true"
 MIN_ALPHA=30
-
 # Output Colors
 SPEAKERS_COLOR="#e6e6e6"      # Soft Light Gray (clean, neutral stereo output)
 VSPEAKERS_COLOR="#ff5a5a"     # Brightened Red (clear alert/error)
@@ -20,6 +21,15 @@ VHEADPHONES_COLOR="#e6b800"   # Deep Gold (warm, premium virtual processing)
 
 # Set to "true" to enable dunst progress bars, "false" to disable.
 DUNST_NOTIFY_VOLUME="false"
+
+# --- SINK MENU CONFIGURATION ---
+# Set to "true" to use a menu (wofi/rofi) for sink selection. Set to "false" to cycle.
+MENU="false"
+# Command to launch the menu. 
+# Menu command to use. Examples: "wofi --dmenu" or "rofi -dmenu" or "fuzzel -dmenu"
+MENU_COMMAND="wofi --dmenu --width 500 --height 400"
+
+# CONFIGURATION - END
 
 # --- 1. Action handler for clicks/scrolls ---
 if [ -n "${1:-}" ]; then
@@ -35,53 +45,96 @@ if [ -n "${1:-}" ]; then
     unmute) wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 >/dev/null 2>&1; exit 0 ;;
     # --- 1. Action handler for clicks/scrolls ---
     toggle_sink)
-            # Build ordered cycle: all virtual sinks (effect_input.*) then the first physical sink (non-effect_input.)
-            mapfile -t VIRTUAL_SINKS < <(pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -E "effect_input\." || true)
-            mapfile -t PHYSICAL_SINKS < <(pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -v -E "effect_input\." || true)
+      if [ "$MENU" = "true" ]; then
+        # 1. Gather sinks into a hidden map: RAW_NAME <tab> CLEAN_DISPLAY_NAME
+        SINK_DATA=$(LC_ALL=C pactl list sinks 2>/dev/null | awk '
+          /^[ \t]*Name:/ { 
+            name=$2
+          }
+          /^[ \t]*Description:/ { 
+            desc=$0
+            # Clean up the "Description: " prefix
+            sub(/^[ \t]*Description:[ \t]*/, "", desc)
+            
+            # Mimic Tooltip Logic: If it is a virtual sink
+            if (name ~ /effect_input\./) {
+              display = name
+              # Extract everything after the last dot
+              sub(/.*\./, "", display)
+            } else {
+              # For physical sinks, use the friendly hardware name
+              display = desc
+            }
+            
+            # Output with a hidden tab separator
+            print name "\t" display
+          }
+        ')
 
-            # If no sinks at all, bail
-            if [ "${#VIRTUAL_SINKS[@]}" -eq 0 ] && [ "${#PHYSICAL_SINKS[@]}" -eq 0 ]; then
-                echo "No sinks found." >&2
-                exit 0
+        if [ -z "$SINK_DATA" ]; then
+          echo "No sinks found." >&2
+          exit 0
+        fi
+
+        # 2. Extract ONLY the clean display names (column 2) to feed to Wofi
+        MENU_ITEMS=$(awk -F'\t' '{print $2}' <<< "$SINK_DATA")
+
+        # 3. Show the menu using your MENU_COMMAND variable
+        # Wofi will now ONLY show clean names like "JamesDSP" or "Εσωτερικός ήχος"
+        SELECTED=$(echo "$MENU_ITEMS" | sed '/^$/d' | $MENU_COMMAND --prompt "Select Audio Sink")
+
+        # 4. If the user picked something, match it back to the hidden raw name and apply it
+        if [ -n "$SELECTED" ]; then
+          while IFS=$'\t' read -r raw display; do
+            if [ "$SELECTED" = "$display" ]; then
+              pactl set-default-sink "$raw"
+              break
             fi
+          done <<< "$SINK_DATA"
+        fi
+        exit 0
+      fi
 
-            # Build cycle list: all virtuals first, then physicals (we'll use only the first physical as the "physical" target)
-            cycle=()
-            for v in "${VIRTUAL_SINKS[@]}"; do cycle+=("$v"); done
-            # Add physical targets after virtuals; include all physicals so cycling goes through them too
-            for p in "${PHYSICAL_SINKS[@]}"; do cycle+=("$p"); done
+      # --- EXISTING CYCLE LOGIC (Runs if MENU="false") ---
+      mapfile -t VIRTUAL_SINKS < <(pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -E "effect_input\." || true)
+      mapfile -t PHYSICAL_SINKS < <(pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -v -E "effect_input\." || true)
 
-            CURRENT=$(pactl get-default-sink 2>/dev/null | tr -d '[:space:]')
-            # If current is empty, set to first in cycle
-            if [ -z "$CURRENT" ]; then
-                NEXT="${cycle[0]}"
-                pactl set-default-sink "$NEXT"
-                exit 0
-            fi
+      if [ "${#VIRTUAL_SINKS[@]}" -eq 0 ] && [ "${#PHYSICAL_SINKS[@]}" -eq 0 ]; then
+        echo "No sinks found." >&2
+        exit 0
+      fi
 
-            # Find current index in cycle
-            idx=-1
-            for i in "${!cycle[@]}"; do
-                if [ "${cycle[$i]}" = "$CURRENT" ]; then
-                    idx=$i
-                    break
-                fi
-            done
+      cycle=()
+      for v in "${VIRTUAL_SINKS[@]}"; do cycle+=("$v"); done
+      for p in "${PHYSICAL_SINKS[@]}"; do cycle+=("$p"); done
 
-            if [ "$idx" -ge 0 ]; then
-                # advance to next, wrap around
-                next_idx=$(( (idx + 1) % ${#cycle[@]} ))
-                NEXT="${cycle[$next_idx]}"
-                pactl set-default-sink "$NEXT"
-            else
-                # Current not in our cycle: prefer first virtual if exists, else first physical
-                if [ "${#VIRTUAL_SINKS[@]}" -gt 0 ]; then
-                    pactl set-default-sink "${VIRTUAL_SINKS[0]}"
-                else
-                    pactl set-default-sink "${PHYSICAL_SINKS[0]}"
-                fi
-            fi
-            exit 0 ;;
+      CURRENT=$(pactl get-default-sink 2>/dev/null | tr -d '[:space:]')
+      if [ -z "$CURRENT" ]; then
+        NEXT="${cycle[0]}"
+        pactl set-default-sink "$NEXT"
+        exit 0
+      fi
+
+      idx=-1
+      for i in "${!cycle[@]}"; do
+        if [ "${cycle[$i]}" = "$CURRENT" ]; then
+          idx=$i
+          break
+        fi
+      done
+
+      if [ "$idx" -ge 0 ]; then
+        next_idx=$(( (idx + 1) % ${#cycle[@]} ))
+        NEXT="${cycle[$next_idx]}"
+        pactl set-default-sink "$NEXT"
+      else
+        if [ "${#VIRTUAL_SINKS[@]}" -gt 0 ]; then
+          pactl set-default-sink "${VIRTUAL_SINKS[0]}"
+        else
+          pactl set-default-sink "${PHYSICAL_SINKS[0]}"
+        fi
+      fi
+      exit 0 ;;
     *) ;; # unknown action -> fall through
   esac
 fi
