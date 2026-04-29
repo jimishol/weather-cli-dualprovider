@@ -352,68 +352,36 @@ context.modules = [
     { name = libpipewire-module-filter-chain
             flags = [ nofail ]
             args = {
-                node.description = "Stereo EQ - Beyerdynamic DT 990 Full"
-                media.name       = "Stereo EQ - Beyerdynamic DT 990 Full"
+                node.description = "Stereo EQ - Beyerdynamic DT 990 Convolution"
+                media.name       = "Stereo EQ - Beyerdynamic DT 990 Convolution"
                 filter.graph = {
                     nodes = [
-                        # Preamp (Shared Name Naming Collision as requested)
-                        { type = builtin label = mixer name = preampL control = { "Gain 1" = 0.54 } }
-                        { type = builtin label = mixer name = preampR control = { "Gain 1" = 0.54 } }
-    
-                        # Left Channel (L1 to L10)
-                        { type = builtin label = bq_lowshelf  name = L1  control = { "Freq" = 105.0  "Gain" = 5.7  "Q" = 0.70 } }
-                        { type = builtin label = bq_peaking   name = L2  control = { "Freq" = 82.6   "Gain" = -4.5 "Q" = 0.67 } }
-                        { type = builtin label = bq_peaking   name = L3  control = { "Freq" = 200.8  "Gain" = -1.1 "Q" = 2.44 } }
-                        { type = builtin label = bq_peaking   name = L4  control = { "Freq" = 357.0  "Gain" = 0.7  "Q" = 3.56 } }
-                        { type = builtin label = bq_peaking   name = L5  control = { "Freq" = 630.6  "Gain" = 2.0  "Q" = 1.25 } }
-                        { type = builtin label = bq_peaking   name = L6  control = { "Freq" = 1038.8 "Gain" = -1.4 "Q" = 2.31 } }
-                        { type = builtin label = bq_peaking   name = L7  control = { "Freq" = 2254.9 "Gain" = 1.7  "Q" = 2.37 } }
-                        { type = builtin label = bq_peaking   name = L8  control = { "Freq" = 4629.2 "Gain" = 4.7  "Q" = 4.14 } }
-                        { type = builtin label = bq_peaking   name = L9  control = { "Freq" = 6291.1 "Gain" = -2.4 "Q" = 4.64 } }
-                        { type = builtin label = bq_highshelf name = L10 control = { "Freq" = 10000.0 "Gain" = -5.2 "Q" = 0.70 } }
-    
-                        # Right Channel (R1 to R10)
-                        { type = builtin label = bq_lowshelf  name = R1  control = { "Freq" = 105.0  "Gain" = 5.7  "Q" = 0.70 } }
-                        { type = builtin label = bq_peaking   name = R2  control = { "Freq" = 82.6   "Gain" = -4.5 "Q" = 0.67 } }
-                        { type = builtin label = bq_peaking   name = R3  control = { "Freq" = 200.8  "Gain" = -1.1 "Q" = 2.44 } }
-                        { type = builtin label = bq_peaking   name = R4  control = { "Freq" = 357.0  "Gain" = 0.7  "Q" = 3.56 } }
-                        { type = builtin label = bq_peaking   name = R5  control = { "Freq" = 630.6  "Gain" = 2.0  "Q" = 1.25 } }
-                        { type = builtin label = bq_peaking   name = R6  control = { "Freq" = 1038.8 "Gain" = -1.4 "Q" = 2.31 } }
-                        { type = builtin label = bq_peaking   name = R7  control = { "Freq" = 2254.9 "Gain" = 1.7  "Q" = 2.37 } }
-                        { type = builtin label = bq_peaking   name = R8  control = { "Freq" = 4629.2 "Gain" = 4.7  "Q" = 4.14 } }
-                        { type = builtin label = bq_peaking   name = R9  control = { "Freq" = 6291.1 "Gain" = -2.4 "Q" = 4.64 } }
-                        { type = builtin label = bq_highshelf name = R10 control = { "Freq" = 10000.0 "Gain" = -5.2 "Q" = 0.70 } }
+                        { type = builtin label = copy name = copyL }
+                        { type = builtin label = copy name = copyR }
+                        { type = builtin label = convolver name = convL config = { filename = "/home/YOUR_USERNAME/.config/pipewire/DT990_worn.wav" channel = 0 } }
+                        { type = builtin label = convolver name = convR config = { filename = "/home/YOUR_USERNAME/.config/pipewire/DT990_worn.wav" channel = 1 } }
+                        { type = builtin label = mixer name = mixL }
+                        { type = builtin label = mixer name = mixR }
                     ]
                     links = [
-                        # Left Links
-                        { output = "preampL:Out" input = "L1:In" }
-                        { output = "L1:Out" input = "L2:In" } { output = "L2:Out" input = "L3:In" }
-                        { output = "L3:Out" input = "L4:In" } { output = "L4:Out" input = "L5:In" }
-                        { output = "L5:Out" input = "L6:In" } { output = "L6:Out" input = "L7:In" }
-                        { output = "L7:Out" input = "L8:In" } { output = "L8:Out" input = "L9:In" }
-                        { output = "L9:Out" input = "L10:In" }
-    
-                        # Right Links
-                        { output = "preampR:Out" input = "R1:In" }
-                        { output = "R1:Out" input = "R2:In" } { output = "R2:Out" input = "R3:In" }
-                        { output = "R3:Out" input = "R4:In" } { output = "R4:Out" input = "R5:In" }
-                        { output = "R5:Out" input = "R6:In" } { output = "R6:Out" input = "R7:In" }
-                        { output = "R7:Out" input = "R8:In" } { output = "R8:Out" input = "R9:In" }
-                        { output = "R9:Out" input = "R10:In" }
+                        { output = "copyL:Out" input = "convL:In" }
+                        { output = "copyR:Out" input = "convR:In" }
+                        { output = "convL:Out" input = "mixL:In 1" }
+                        { output = "convR:Out" input = "mixR:In 1" }
                     ]
-                    inputs  = [ "preampL:In 1" "preampR:In 1" ]
-                    outputs = [ "L10:Out" "R10:Out" ]
+                    inputs  = [ "copyL:In" "copyR:In" ]
+                    outputs = [ "mixL:Out" "mixR:Out" ]
                 }
                 capture.props = {
-                    node.name      = "effect_input.stereoDT990"
-                    media.class    = Audio/Sink
-                    audio.channels = 2
-                    audio.position = [ FL FR ]
+                    node.name          = "effect_input.stereoDT990"
+                    media.class        = "Audio/Sink"
+                    audio.channels     = 2
+                    audio.position     = [ FL FR ]
                 }
                 playback.props = {
-                    node.name      = "effect_input.stereoDT990" # SHARED NAME RESTORED
-                    node.passive   = false
-                    target.object  = "alsa_output.pci-0000_00_1b.0.analog-stereo"
+                    node.name      = "effect_output.stereoDT990"
+                    node.passive   = true
+		    node.always-process = true  
                     audio.channels = 2
                     audio.position = [ FL FR ]
                 }
