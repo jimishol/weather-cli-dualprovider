@@ -379,7 +379,7 @@ context.modules = [
                     audio.position     = [ FL FR ]
                 }
                 playback.props = {
-                    node.name      = "effect_output.stereoDT990"
+                    node.name      = "effect_input.stereoDT990"
                     node.passive   = true
 		    node.always-process = true  
                     audio.channels = 2
