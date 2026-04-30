@@ -22,6 +22,11 @@ Instead of running a generic room effect, this methodology uses a "Baking" proce
 * **Targets:** Beyerdynamic DT 990 Pro (250 Ohm) and Sennheiser IE200.
 * **Logic:** Profiles were generated to reach a neutral Harman target, taming the "Beyer Peak" and refining the IE200's response.
 
+### Direct Convolution (Pure Stereo)
+* **Source:** [AutoEq Repository (GitHub)](https://github.com/jaakkopasanen/AutoEq/tree/master/results)
+* **Application:** Used for the **"Stereo EQ - Beyerdynamic DT 990 Convolution"** module. 
+* **Logic:** For pure music listening without spatial simulation, I use the impulse response `.wav` files directly from the repository. Specifically, I use the `worn` pad variation for the DT 990 to accurately reflect the acoustic changes that occur as the headphones age.
+
 ## 3. The "Baking" Recipe (FFmpeg)
 
 To keep PipeWire stable and lightweight, we use `ffmpeg` to apply the filters directly to the HRTF impulse. 
