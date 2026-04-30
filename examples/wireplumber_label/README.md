@@ -136,12 +136,13 @@ This module uses color as a functional indicator of audio pipeline state. Colors
 
 | Icon | Device | Color | Hex | Meaning |
 | :--- | :----- | :---: | :--: | :------ |
-|  | Speakers | Soft Light Gray | `#e6e6e6` | Baseline: neutral stereo on physical speakers |
-| V | Virtual Speakers | Bright Red | `#ff5a5a` | Alert: virtual binaural downmix on speakers — switch outputs |
-|  | Headphones | Dark Aqua | `#00e5e5` | Standard stereo: 2‑channel listening |
-| V | Virtual Headphones | Deep Gold | `#e6b800` | Premium: binaural convolver active for immersive audio |
+| 🔊 | Speakers | Soft Light Gray | `#e6e6e6` | Baseline: neutral stereo on physical speakers |
+| V🔊 | Virtual Speakers | Bright Red | `#ff5a5a` | Alert: virtual binaural downmix on speakers — switch outputs |
+| 🎧 | Headphones | Dark Aqua | `#00e5e5` | Standard stereo: 2‑channel listening |
+| V🎧 | Virtual Headphones | Deep Gold | `#e6b800` | Premium: binaural convolver active for immersive audio |
 
 **Notes**
+- The icons displayed above (🔊 🎧) are for README documentation. The script renders actual Nerd Font audio jack symbols in Waybar, which may differ in appearance from the emoji shown here
 - Colors are applied via Pango markup in the script and via Waybar CSS when using HTML spans.
 - For Pango opacity fading use `format: "{}"` in Waybar so Pango `<span alpha='...'>` is rendered.
 - If you prefer CSS styling of HTML spans, set `USE_PANGO="false"` and emit `<span class="icon">…</span>` from the script with Waybar `escape: false`.
