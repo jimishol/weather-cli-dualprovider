@@ -35,6 +35,16 @@
 chmod +x ~/.config/waybar/scripts/weather/weather.sh
 ```
 
+## Additional Waybar Modules
+
+This repository also includes an optional **WirePlumber/PipeWire audio label script**:
+
+➡️ [`examples/wireplumber_label/`](examples/wireplumber_label/)
+
+It provides a lightweight Waybar audio status module and includes a guide for **headphone virtualization**.  
+The script detects virtualization states more reliably than standard PipeWire modules.  
+If you prefer a simpler setup without virtualization, the non‑virtualized mode is also supported, though standard PipeWire modules may be more robust in that case.
+
 ---
 
 ## Installation and Configuration
