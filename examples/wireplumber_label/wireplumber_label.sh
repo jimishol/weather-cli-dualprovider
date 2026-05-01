@@ -170,6 +170,8 @@ output_json() {
       icon=""; device_label="Headphones"; dev_color="$HEADPHONES_COLOR" ;;
     *speakers*) 
       icon=""; device_label="Speakers"; dev_color="$SPEAKERS_COLOR" ;;
+    *hdmi*) 
+      icon="H"; device_label="HDMI"; dev_color="$SPEAKERS_COLOR" ;;
     *) 
       icon=""; device_label="Device"; dev_color="" ;;
   esac
@@ -295,13 +297,16 @@ print_status() {
             # Guard: If port is just a mic, keep speaker icon
             base_type="speakers" 
             ;;
-        *speaker*|*hdmi*|*surround*|*lineout*|*analog-output*)
+	*hdmi*)
+            base_type="hdmi" 
+            ;;
+        *speaker*|*surround*|*lineout*|*analog-output*)
             base_type="speakers" 
             ;;
         *)
             # Final fallback scan for any active physical headphones
             phys_has_hp=$(awk 'BEGIN{RS="\n\n";FS="\n";IGNORECASE=1} {name=""; for(i=1;i<=NF;i++) if($i ~ /^Name: /){sub(/^Name: /,"",$i); name=$i} if(name!="" && tolower(name) !~ /virtual|surround|effect_input.|atmos/){ for(i=1;i<=NF;i++) if($i ~ /Active Port:/ && tolower($i) ~ /headphones/ && tolower($i) !~ /mic/){print "yes"; exit}} }' "$TMP_FILE")
-            [ "$phys_has_hp" = "yes" ] && base_type="headphones" || base_type="speakers"
+            [ "$phys_has_hp" = "yes" ] && base_type="headphones" || base_type="speakers" || base_type="hdmi"
             ;;
     esac
 
