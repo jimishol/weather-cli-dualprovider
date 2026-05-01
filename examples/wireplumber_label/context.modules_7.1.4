@@ -1,0 +1,151 @@
+    { name = libpipewire-module-filter-chain
+        flags = [ nofail ]
+        args = {
+            node.description = "Atmos 7.1.4 - DT 990"
+            media.name       = "Atmos 7.1.4 - DT 990"
+            filter.graph = {
+                nodes = [
+                    # Input Copies
+                    { type = builtin label = copy name = copyFL  }
+                    { type = builtin label = copy name = copyFR  }
+                    { type = builtin label = copy name = copyFC  }
+                    { type = builtin label = copy name = copyLFE }
+                    { type = builtin label = copy name = copyRL  }
+                    { type = builtin label = copy name = copyRR  }
+                    { type = builtin label = copy name = copySL  }
+                    { type = builtin label = copy name = copySR  }
+                    { type = builtin label = copy name = copyTFL }
+                    { type = builtin label = copy name = copyTFR }
+                    { type = builtin label = copy name = copyTRL }
+                    { type = builtin label = copy name = copyTRR }
+
+                    # Floor Convolvers
+                    { type = builtin label = convolver name = convFL_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  0 } }
+                    { type = builtin label = convolver name = convFL_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  1 } }
+                    { type = builtin label = convolver name = convSL_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  2 } }
+                    { type = builtin label = convolver name = convSL_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  3 } }
+                    { type = builtin label = convolver name = convRL_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  4 } }
+                    { type = builtin label = convolver name = convRL_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  5 } }
+                    { type = builtin label = convolver name = convFC_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  6 } }
+                    { type = builtin label = convolver name = convFC_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  7 } }
+                    { type = builtin label = convolver name = convFR_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  8 } }
+                    { type = builtin label = convolver name = convFR_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel =  9 } }
+                    { type = builtin label = convolver name = convSR_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 10 } }
+                    { type = builtin label = convolver name = convSR_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 11 } }
+                    { type = builtin label = convolver name = convRR_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 12 } }
+                    { type = builtin label = convolver name = convRR_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 13 } } 
+
+                    # LFE Convolvers (Fixed: Dedicated nodes mapping to Center HRIR channels)
+                    { type = builtin label = convolver name = convLFE_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 6 } }
+                    { type = builtin label = convolver name = convLFE_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 7 } }
+
+                    # Height Convolvers
+                    { type = builtin label = convolver name = convTFL_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 14 } }
+                    { type = builtin label = convolver name = convTFL_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 15 } }
+                    { type = builtin label = convolver name = convTFR_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 16 } }
+                    { type = builtin label = convolver name = convTFR_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 17 } }
+                    { type = builtin label = convolver name = convTRL_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 18 } }
+                    { type = builtin label = convolver name = convTRL_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 19 } }
+                    { type = builtin label = convolver name = convTRR_L config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 20 } }
+                    { type = builtin label = convolver name = convTRR_R config = { filename = "/home/jimishol/.config/pipewire/sadie_DT990.wav" channel = 21 } }
+
+                    # Mixers (Fixed: Multi-stage mixing to bypass 8-port limit)
+                    { type = builtin label = mixer name = mixL_Floor }
+                    { type = builtin label = mixer name = mixR_Floor }
+                    { type = builtin label = mixer name = mixL_Height }
+                    { type = builtin label = mixer name = mixR_Height }
+                    { type = builtin label = mixer name = mixL_Final }
+                    { type = builtin label = mixer name = mixR_Final }
+                ]
+                links = [
+                    # Floor Links
+                    { output = "copyFL:Out"  input="convFL_L:In"  } { output = "copyFL:Out"  input="convFL_R:In"  }
+                    { output = "copyFR:Out"  input="convFR_L:In"  } { output = "copyFR:Out"  input="convFR_R:In"  }
+                    { output = "copyFC:Out"  input="convFC_L:In"  } { output = "copyFC:Out"  input="convFC_R:In"  }
+                    { output = "copyLFE:Out" input="convLFE_L:In" } { output = "copyLFE:Out" input="convLFE_R:In" }
+                    { output = "copyRL:Out"  input="convRL_L:In"  } { output = "copyRL:Out"  input="convRL_R:In"  }
+                    { output = "copyRR:Out"  input="convRR_L:In"  } { output = "copyRR:Out"  input="convRR_R:In"  }
+                    { output = "copySL:Out"  input="convSL_L:In"  } { output = "copySL:Out"  input="convSL_R:In"  }
+                    { output = "copySR:Out"  input="convSR_L:In"  } { output = "copySR:Out"  input="convSR_R:In"  }
+                    
+                    # Height Links
+                    { output = "copyTFL:Out" input="convTFL_L:In" } { output = "copyTFL:Out" input="convTFL_R:In" }
+                    { output = "copyTFR:Out" input="convTFR_L:In" } { output = "copyTFR:Out" input="convTFR_R:In" }
+                    { output = "copyTRL:Out" input="convTRL_L:In" } { output = "copyTRL:Out" input="convTRL_R:In" }
+                    { output = "copyTRR:Out" input="convTRR_L:In" } { output = "copyTRR:Out" input="convTRR_R:In" }
+
+                    # Stage 1: Mix Floor (8 inputs: FL, FR, FC, LFE, SL, SR, RL, RR)
+                    { output = "convFL_L:Out"  input="mixL_Floor:In 1" } { output = "convFL_R:Out"  input="mixR_Floor:In 1" }
+                    { output = "convFR_L:Out"  input="mixL_Floor:In 2" } { output = "convFR_R:Out"  input="mixR_Floor:In 2" }
+                    { output = "convFC_L:Out"  input="mixL_Floor:In 3" } { output = "convFC_R:Out"  input="mixR_Floor:In 3" }
+                    { output = "convLFE_L:Out" input="mixL_Floor:In 4" } { output = "convLFE_R:Out" input="mixR_Floor:In 4" }
+                    { output = "convSL_L:Out"  input="mixL_Floor:In 5" } { output = "convSL_R:Out"  input="mixR_Floor:In 5" }
+                    { output = "convSR_L:Out"  input="mixL_Floor:In 6" } { output = "convSR_R:Out"  input="mixR_Floor:In 6" }
+                    { output = "convRL_L:Out"  input="mixL_Floor:In 7" } { output = "convRL_R:Out"  input="mixR_Floor:In 7" }
+                    { output = "convRR_L:Out"  input="mixL_Floor:In 8" } { output = "convRR_R:Out"  input="mixR_Floor:In 8" }
+
+                    # Stage 2: Mix Heights (4 inputs: TFL, TFR, TRL, TRR)
+                    { output = "convTFL_L:Out" input="mixL_Height:In 1" } { output = "convTFL_R:Out" input="mixR_Height:In 1" }
+                    { output = "convTFR_L:Out" input="mixL_Height:In 2" } { output = "convTFR_R:Out" input="mixR_Height:In 2" }
+                    { output = "convTRL_L:Out" input="mixL_Height:In 3" } { output = "convTRL_R:Out" input="mixR_Height:In 3" }
+                    { output = "convTRR_L:Out" input="mixL_Height:In 4" } { output = "convTRR_R:Out" input="mixR_Height:In 4" }
+
+                    # Stage 3: Final Mix (Floor + Heights)
+                    { output = "mixL_Floor:Out"  input="mixL_Final:In 1" } { output = "mixR_Floor:Out"  input="mixR_Final:In 1" }
+                    { output = "mixL_Height:Out" input="mixL_Final:In 2" } { output = "mixR_Height:Out" input="mixR_Final:In 2" }
+                ]
+                inputs  = [ "copyFL:In" "copyFR:In" "copyFC:In" "copyLFE:In" "copyRL:In" "copyRR:In" "copySL:In" "copySR:In" "copyTFL:In" "copyTFR:In" "copyTRL:In" "copyTRR:In" ]
+                outputs = [ "mixL_Final:Out" "mixR_Final:Out" ]
+            }
+            capture.props = {
+                node.name      = "effect_input.DT990"
+                media.class    = Audio/Sink
+                audio.channels = 12
+                audio.position = [ FL FR FC LFE RL RR SL SR TFL TFR TRL TRR ]
+            }
+            playback.props = {
+                node.name      = "effect_input.DT990"
+                node.passive   = true
+                audio.channels = 2
+                audio.position = [ FL FR ]
+            }
+        }
+    }
+    { name = libpipewire-module-filter-chain
+            flags = [ nofail ]
+            args = {
+                node.description = "Stereo EQ - Beyerdynamic DT 990 Convolution"
+                media.name       = "Stereo EQ - Beyerdynamic DT 990 Convolution"
+                filter.graph = {
+                    nodes = [
+                        { type = builtin label = copy name = copyL }
+                        { type = builtin label = copy name = copyR }
+                        { type = builtin label = convolver name = convL config = { filename = "/home/jimishol/.config/pipewire/DT990_worn.wav" channel = 0 } }
+                        { type = builtin label = convolver name = convR config = { filename = "/home/jimishol/.config/pipewire/DT990_worn.wav" channel = 1 } }
+                        { type = builtin label = mixer name = mixL }
+                        { type = builtin label = mixer name = mixR }
+                    ]
+                    links = [
+                        { output = "copyL:Out" input = "convL:In" }
+                        { output = "copyR:Out" input = "convR:In" }
+                        { output = "convL:Out" input = "mixL:In 1" }
+                        { output = "convR:Out" input = "mixR:In 1" }
+                    ]
+                    inputs  = [ "copyL:In" "copyR:In" ]
+                    outputs = [ "mixL:Out" "mixR:Out" ]
+                }
+                capture.props = {
+                    node.name          = "effect_input.stereoDT990"
+                    media.class        = "Audio/Sink"
+                    audio.channels     = 2
+                    audio.position     = [ FL FR ]
+                }
+                playback.props = {
+                    node.name      = "effect_input.stereoDT990"
+                    node.passive   = true
+		    node.always-process = true  
+                    audio.channels = 2
+                    audio.position = [ FL FR ]
+                }
+            }
+        }
