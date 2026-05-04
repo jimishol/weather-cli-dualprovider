@@ -11,10 +11,14 @@
 - **Wind units**: **Beaufort**, **km/h**, and **knots** (displayed as **kt**).  
 - **Wind direction arrows** using a 16‑point compass.  
 - **Waybar JSON output** compatible with Waybar modules.  
-- **Interactive Waybar module**: **Left-click** to instantly toggle the weather provider, and **Right-click** to cycle through wind units (Beaufort, km/h, knots).
+- **Interactive Waybar module**:
+    - **Left-click** to instantly toggle the weather provider.
+    - **Right-click**: Toggle between Default (3-day) and Extended (7-day) forecast views.
+    - **Middle-click**: Cycle through wind units (Beaufort, km/h, knots).
 - **CLI and lock screen friendly**: works in desktop Linux, Termux, TTY, SSH, Waybar, and Hyprland/hyprlock.  
 - **Forecast tooltip** with sunrise/sunset, min/max, feels like, and rain probability.  
 - **Per‑user persistent state** stored under **`~/.cache/weather`** by default.
+- **Extended forecast** toggle is stored in /tmp/weather_f_days, persisting through Waybar refreshes but resetting to default upon reboot.
 ---
 
 ## Requirements
@@ -35,17 +39,14 @@
 chmod +x ~/.config/waybar/scripts/weather/weather.sh
 ```
 
-## Additional Waybar Modules
+## 📁 Other Utilities
+This repository also hosts independent scripts for a polished Waybar experience:
 
-This repository also includes an optional **WirePlumber/PipeWire audio label script**:
-
-➡️ [`examples/wireplumber_label/`](examples/wireplumber_label/)
-
-It provides a lightweight Waybar audio status module and includes a guide for **headphone virtualization**.  
-The script detects virtualization states more reliably than standard PipeWire modules.  
-If you prefer a simpler setup without virtualization, the non‑virtualized mode is also supported, though standard PipeWire modules may be more robust in that case.
+[**🎧 WirePlumber Audio Label**](examples/wireplumber_label/)
+A standalone Waybar audio status module with reliable headphone virtualization detection. **Note:** This script is totally independent and does not require `weather.sh` to function.
 
 ---
+
 
 ## Installation and Configuration
 **Install script**
@@ -59,7 +60,8 @@ chmod +x ~/.config/waybar/scripts/weather/weather.sh
 **Defaults (edit top of script)**
 - **DEFAULT_PROVIDER** — `"wttr"` or `"open-meteo"`.  
 - **DEFAULT_WIND** — `"bft"`, `"knots"`, or `"kmh"`.  
-- **FORECAST_DAYS** — number of future days shown in tooltip (Open‑Meteo only).  
+- **FORECAST_DAYS** — number of future days shown in tooltip (Open‑Meteo only e.g. 3).  
+- **EXTENDED_FORECAST** — Number of days shown in "Extended View" (Open‑Meteo only e.g. 7).
 - **LAT** and **LON** — coordinates for Open‑Meteo queries.
 - **LOCATION** — location for wttr.in (city name in English or "lat,lon"; default: Chios, Greece).
 - **DATE_FORMAT** — Visual style (e.g., `"%a %d"` for **Fri 03**).
@@ -115,7 +117,7 @@ variables as the English template.
 ## Waybar and Hyprland Integration
 **Waybar module example**
 
-*Tip: With the `on-click` actions below, **LMB** toggles the provider and **RMB** cycles wind units.*
+*Tip: With the `on-click` actions below, **LMB** toggles the weather provider, **RMB** toggles the extended forecast view, and **MMB** cycles wind units.*
 
 ```json
 "custom/weather": {
@@ -124,8 +126,9 @@ variables as the English template.
   "exec": "~/.config/waybar/scripts/weather/weather.sh",
   "return-type": "json",
   "on-click": "~/.config/waybar/scripts/weather/weather.sh provider",
-  "on-click-right": "~/.config/waybar/scripts/weather/weather.sh wind_mode"
-}
+  "on-click-right": "~/.config/waybar/scripts/weather/weather.sh f_toggle && pkill -RTMIN+8 waybar",
+  "on-click-middle": "~/.config/waybar/scripts/weather/weather.sh wind_mode"
+},
 ```
 
 **Waybar CSS example**
@@ -201,6 +204,7 @@ You can force the script to use a specific language or provider for a single run
 ./weather.sh --forecast=5    # same, using long form
 # numeric positional also supported:
 ./weather.sh en 8            # language en, 8 forecast days
+./weather.sh f_toggle        # manually switch between normal and extended forecast modes.
 
 ```
 

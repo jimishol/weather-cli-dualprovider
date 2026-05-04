@@ -12,6 +12,7 @@ DEFAULT_WIND="bft"
 # MAX_FORECAST=15: one day below Open‑Meteo's 16‑day limit to avoid endpoint/model edge‑case errors (e.g., identical zero fields).
 MAX_FORECAST=15
 FORECAST_DAYS=3
+EXTENDED_FORECAST=7  # Your preferred "occasional" view
 
 # Coordinates for Open-Meteo (Default: Chios, Greece)
 LAT="38.3678"
@@ -24,6 +25,23 @@ LOCATION="Chios"
 DATE_FORMAT="%a %d"
 
 # --- END OF CONFIG ---
+
+# --- PERSISTENT FORECAST OVERRIDE START ---
+tmp_f="/tmp/weather_f_days"
+
+if [[ "$1" == "f_toggle" ]]; then
+    if [[ -f "$tmp_f" ]]; then
+        rm -f "$tmp_f"
+    else
+        echo "$EXTENDED_FORECAST" > "$tmp_f"
+    fi
+elif [[ "$1" == "-f" && -n "$2" ]]; then
+    echo "$2" > "$tmp_f"
+fi
+
+# Override the default 3 if the temp file exists
+[[ -f "$tmp_f" ]] && FORECAST_DAYS=$(cat "$tmp_f")
+# --- PERSISTENT FORECAST OVERRIDE END ---
 
 for cmd in bash curl jq awk date; do
   command -v "$cmd" >/dev/null || { echo "Missing dependency: $cmd"; exit 1; }
