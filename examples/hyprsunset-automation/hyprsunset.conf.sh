@@ -5,9 +5,11 @@ WEATHER_SCRIPT="$HOME/.config/waybar/scripts/weather/weather.sh"
 SUNRISE=$("$WEATHER_SCRIPT" -p open-meteo -l en | grep -oP '🌅 \K[0-9:]+')
 SUNSET=$("$WEATHER_SCRIPT" -p open-meteo -l en | grep -oP '🌇 \K[0-9:]+')
 
-# Fallback values
-SUNRISE=${SUNRISE:-06:30}
-SUNSET=${SUNSET:-20:00}
+# Exit on failure so systemd can retry later
+if [ -z "$SUNRISE" ] || [ -z "$SUNSET" ]; then
+    echo "Error: Failed to fetch sunrise/sunset. Exiting with failure." >&2
+    exit 1
+fi
 
 # --- 2. Transition Settings ---
 TRANSITION_MINS=60  # Total duration of the transition in minutes

@@ -3,4 +3,6 @@ Description=Update hyprsunset config and restart service
 
 [Service]
 Type=oneshot
-ExecStart=%h/.config/hypr/update-hyprsunset.sh
+ExecStart=%h/.config/hypr/scripts/hyprsunset.conf.sh
+Restart=on-failure
+RestartSec=10m

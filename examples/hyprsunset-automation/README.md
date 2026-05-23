@@ -16,12 +16,12 @@ exec-once = hyprsunset
 
 ### Installation
 
-1. Copy `update-hyprsunset.sh` to your Hyprland config folder and make it executable:
+1. Copy `hyprsunset.conf.sh` to your Hyprland config folder and make it executable:
 ```bash
-cp update-hyprsunset.sh ~/.config/hypr/
-chmod +x ~/.config/hypr/update-hyprsunset.sh
+cp hyprsunset.conf.sh ~/.config/hypr/scripts/
+chmod +x ~/.config/hypr/scripts/hyprsunset.conf.sh
 ```
-2. Edit `~/.config/hypr/update-hyprsunset.sh` and ensure `WEATHER_SCRIPT` points to your `weather.sh`.
+2. Edit `~/.config/hypr/scripts/hyprsunset.conf.sh` and ensure `WEATHER_SCRIPT` points to your `weather.sh`.
 3. Copy the systemd units to your user systemd folder:
 ```bash
 mkdir -p ~/.config/systemd/user/
