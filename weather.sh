@@ -35,6 +35,7 @@ if [[ "$1" == "f_toggle" ]]; then
     else
         echo "$EXTENDED_FORECAST" > "$tmp_f"
     fi
+    exit 0
 elif [[ "$1" == "-f" && -n "$2" ]]; then
     echo "$2" > "$tmp_f"
 fi
@@ -141,6 +142,7 @@ Shortcuts:
   weather.sh en           Equivalent to: weather.sh -l en
   weather.sh provider     Toggle provider
   weather.sh wind_mode    Toggle wind units
+  weather.sh f_toggle      Toggle extended forecast days on/off
 
 Examples:  
 USAGE
@@ -150,6 +152,7 @@ USAGE
       echo "🔧 Toggle wind units:   weather.sh wind_mode && weather.sh en"
       echo "🔧 Toggle provider:     weather.sh provider && weather.sh"
       echo "🔧 Toggle provider:     weather.sh provider && weather.sh en"
+      echo "🔧 Toggle forecast:     weather.sh f_toggle && weather.sh"
       echo "⚡ Force provider:      weather.sh -p wttr"
       echo "⚡ Force provider:      weather.sh --provider=open-meteo en"
       echo ""
@@ -491,8 +494,8 @@ else
   sunrise=$(jq -r '.weather[0].astronomy[0].sunrise' <<<"$data")
   sunset=$(jq -r '.weather[0].astronomy[0].sunset' <<<"$data")
 
-  local_date=$(jq -r '.current_condition[0].localObsDateTime | split(" ")[0]' <<<"$data")
-  
+  local_date=$(jq -r '(.current_condition[0].localObsDateTime // "") | split(" ")[0]' <<<"$data" 2>/dev/null)
+
   # Today's feeling, min, max, and chance of rain
   cur_feels=$(jq -r '.current_condition[0].FeelsLikeC' <<<"$data")
   today_min=$(jq -r '.weather[0].mintempC' <<<"$data")
