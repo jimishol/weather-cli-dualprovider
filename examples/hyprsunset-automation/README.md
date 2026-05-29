@@ -92,12 +92,18 @@ The following configuration provides a dedicated custom module that displays the
 "custom/backlight": {
     "format": "{text}",
     "return-type": "json",
-    "interval": 600, 
     "exec": "~/.config/waybar/scripts/gamma_tooltip.sh",
+    "interval": 600,
+    "signal": 8,
+
     "on-click": "~/.config/waybar/scripts/toggle-hyprsunset.sh ON_OFF",
+    "on-click-release": "sleep 0.3; pkill -RTMIN+8 waybar",
+
     "on-click-right": "~/.config/waybar/scripts/toggle-hyprsunset.sh 145",
+    "on-click-right-release": "sleep 0.3; pkill -RTMIN+8 waybar",
+
     "tooltip": true
-}
+},
 ```
 
 #### Integration with Native Backlight Module
