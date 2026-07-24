@@ -564,7 +564,7 @@ else
         desc="${LABEL_UNKNOWN:-Unknown}"
       fi
   
-      if [[ "$day" < "$local_date" ]]; then
+      if [[ "$(date -d "$day" +%s)" -lt "$(date -d "$local_date" +%s)" ]]; then
         day=$(LC_ALL="${USE_LOCALE}" date -d "$day +1 day" +"$DATE_FORMAT")
       else
         day=$(LC_ALL="${USE_LOCALE}" date -d "$day" +"$DATE_FORMAT")
