@@ -78,5 +78,8 @@ generate_transition "$SUNSET" $DAY_TEMP $DAY_GAMMA $NIGHT_TEMP $NIGHT_GAMMA
 if hyprctl monitors >/dev/null 2>&1; then
     killall hyprsunset 2>/dev/null
     sleep 1
-    hyprctl dispatch exec hyprsunset
+#   From hyprland.conf old configuration    
+#    hyprctl dispatch exec hyprsunset
+#   To hyprland.lua new configuration 
+    hyprctl dispatch "hl.dsp.exec_cmd('hyprsunset')"
 fi
