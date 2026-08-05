@@ -7,12 +7,26 @@ This example uses **`weather.sh`** to fetch exact sunrise and sunset times (24h 
 ### Prerequisites
 
 1. **Install hyprsunset**: Ensure `hyprsunset` is installed (via your package manager).
-2. **Autostart in Hyprland**: Systemd user services often lack Wayland environment variables at boot. Start `hyprsunset` from Hyprland by adding this to `~/.config/hypr/hyprland.conf`:
+2. **Autostart in Hyprland**: Systemd user services often lack Wayland environment variables at boot. Start `hyprsunset` from Hyprland by adding this to `~/.config/hypr/hyprland.lua`:
 ```ini
-exec-once = hyprsunset
+# From hyprland.conf
+# exec-once = hyprsunset
+# To hyprland.lua
+hl.exec_cmd("hyprsunset")
 ```
 
----
+If you prefer to run `hyprsunset` as a systemd user service, place the start command **after** the two environment‑sync lines:
+
+```lua
+hl.on("hyprland.start", function()
+    -- Required for systemd‑launched Wayland clients
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+
+    -- Start hyprsunset via systemd
+    hl.exec_cmd("systemctl --user start hyprsunset")
+end)
+```
 
 ### Installation
 
