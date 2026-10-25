@@ -496,6 +496,13 @@ else
 
   local_date=$(jq -r '(.current_condition[0].localObsDateTime // "") | split(" ")[0]' <<<"$data" 2>/dev/null)
 
+  # Skip local-date correction when wttr.in does not provide localObsDateTime
+  have_local_date=false
+  
+  if [[ -n "$local_date" && "$local_date" != "null" ]]; then
+      have_local_date=true
+  fi
+
   # Today's feeling, min, max, and chance of rain
   cur_feels=$(jq -r '.current_condition[0].FeelsLikeC' <<<"$data")
   today_min=$(jq -r '.weather[0].mintempC' <<<"$data")
@@ -564,10 +571,14 @@ else
         desc="${LABEL_UNKNOWN:-Unknown}"
       fi
   
-      if [[ "$(date -d "$day" +%s)" -lt "$(date -d "$local_date" +%s)" ]]; then
-        day=$(LC_ALL="${USE_LOCALE}" date -d "$day +1 day" +"$DATE_FORMAT")
+      if $have_local_date; then
+          if [[ "$(date -d "$day" +%s)" -lt "$(date -d "$local_date" +%s)" ]]; then
+              day=$(LC_ALL="${USE_LOCALE}" date -d "$day +1 day" +"$DATE_FORMAT")
+          else
+              day=$(LC_ALL="${USE_LOCALE}" date -d "$day" +"$DATE_FORMAT")
+          fi
       else
-        day=$(LC_ALL="${USE_LOCALE}" date -d "$day" +"$DATE_FORMAT")
+          day=$(LC_ALL="${USE_LOCALE}" date -d "$day" +"$DATE_FORMAT")
       fi
 
       case "$mode" in
